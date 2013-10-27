@@ -1,0 +1,22 @@
+#!/bin/sh
+
+uname="$( uname )"
+
+if [ "$#" -eq 0 ]; then
+	echo "Configuring for $uname..."
+fi
+
+case "$uname" in
+	'Darwin')
+		prefix='/usr/local'
+		mandir='/usr/share/man'
+		;;
+	*)
+		prefix='/usr/local'
+		mandir="${prefix}/man"
+		;;
+esac
+
+printf '%s\n%s\n' "PREFIX := $prefix" "MANPREFIX := $mandir" > "`dirname "$0" `/config.mk"
+
+

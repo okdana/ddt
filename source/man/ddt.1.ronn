@@ -1,0 +1,72 @@
+ddt(1) -- unit-testing tool for shell scripts
+=============================================
+
+## SYNOPSIS
+
+  `ddt` [-h|-V] [-q|-v] [-c <when>] [-p <prefix>] [<plan> ...]
+
+## DESCRIPTION
+
+`ddt` is a unit-testing tool for shell scripts and other command-line tools
+which is based on (and largely compatible with) roundup(1). It accepts one or
+more 'test plans', bash shell scripts containing functions that represent
+individual tests. If a test plan is not specified, the current directory will be
+searched for files ending in .ddtt.
+
+## OPTIONS
+
+`-h`, `--help`, `--longhelp`  
+     Displays this help information and exits.
+
+`-V`, `--version`  
+     Displays version information and exits.
+
+`-v`, `--verbose`  
+     Displays trace information for failing tests.
+
+`-q`, `--quiet`  
+     Hides all output. Useful when only the exit status matters.
+
+`-c` <when>, `--colour` <when>, `--color` <when>  
+     Specifies when output should be colourised. <when> may be 'auto',
+     'always', or 'never' ('auto' is the default).
+
+`-p` <prefix>, `--prefix` <prefix>  
+     Sets the DDT_PREFIX environmental variable and passes it to all test
+     plans. This variable is meant to support comparative testing amongst
+     versions of a test target located under different paths. However, the test
+     plan must be explicitly designed to support this behaviour; if it isn't, 
+     this option will have no special effect.
+
+<plan> ...  
+     Specifies one or more files to use as test plans. If none are specified,
+     the current directory will be searched for files ending in `.ddtt`.
+
+## EXIT STATUS
+
+`ddt` exits with one of the following values:
+
+  `0` -- All tests completed successfully.  
+  `1` -- Invalid input was provided, or a run-time error occurred.  
+  `2` -- All tests completed, but some failed.  
+  `6` -- This help information was displayed.
+
+## NOTES
+
+`ddt` requires bash 4.0 or greater.
+
+## SEE ALSO
+
+roundup(1), roundup(5)
+
+## BUGS
+
+Please report bugs at: http://github.com/okdana/ddt/issues
+
+## CREDITS
+
+`ddt` is distributed under the MIT open-source licence.
+
+`ddt` was written by dana geier, based loosely on roundup by Blake Mizerany.
+
+roundup is (c) 2010 Blake Mizerany.

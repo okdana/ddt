@@ -1,0 +1,214 @@
+# vim: set ft=zsh:
+# ddt functions
+
+# Echoes line, unless --quiet
+ddt:puts() {
+	[[ -n "${ddt['quiet']}" ]] && return
+	printf '%s\n' "$*"
+}
+
+# Echoes error message to STDERR, unless --quiet
+ddt:puts_error() {
+	[[ -n "${ddt['quiet']}" ]] && return
+	printf '%s: %s\n' "${ddt['name']}" "$*" >&2
+}
+
+# Echoes line, if --verbose
+ddt:puts_verbose() {
+	[[ -z "${ddt['verbose']}" ]] && return
+	printf '%s\n' "$*"
+}
+
+# Echoes debug information to STDERR, if --debug
+ddt:puts_debug() {
+	[[ -z "${ddt['debug']}" ]] && return
+	printf '%s\n' "DEBUG: $*" >&2
+}
+
+# Optionally echoes error message with ddt:puts_error, then exits with 1
+ddt:die() {
+	[[ -n "${1}" ]] && ddt:puts_error "$*"
+	exit 1
+}
+
+# Optionally echoes error message with ddt:puts_error, then prints brief usage
+# information with ddt:print_usage, then exits with 1
+ddt:die_with_usage() {
+	[[ -n "${1}" ]] && ddt:puts_error "$*"
+	ddt:print_usage >&2
+	exit 1
+}
+
+# Prints script usage information by parsing the file's documentation comments.
+# Default behaviour is to print brief usage; use --full for full usage (will
+# exit with 6)
+ddt:print_usage() {
+	shortUsage="$( basename "${0}" ) $(
+		sed ${ddt['sedopt']} '
+			 /^[[:space:]]*##: synopsis:/!d;
+			s/^[[:space:]]*##: synopsis:[[:space:]]+//;
+		' "${0}"
+	)"
+
+	# Brief usage
+	if [[ "$*" != *'full'* ]]; then
+		printf '%s\n' \
+			"usage: ${shortUsage}"
+
+	# Full usage
+	else
+		cat <<- EOF
+			${ddt['name']} ${ddt['version']}
+
+			usage:
+			  ${shortUsage:-hello}
+
+		EOF
+
+		# Obtain the body of our usage information by parsing the script file
+		# itself for comments beginning with #?:
+		sed ${ddt['sedopt']} '
+			 /^[[:space:]]*#\?:/!d;
+			s/^[[:space:]]*#\?:[ ]?//;
+		' "${0}"
+
+		exit 6
+	fi
+}
+
+# Prints script version information and exits with 6
+ddt:print_version() {
+	printf '%s\n' \
+		"${ddt['name']} ${ddt['version']}"
+	exit 6
+}
+
+# Prints a list of tests (functions) found in the specified test plan file
+ddt:get_tests() {
+	sed ${ddt['sedopt']} '
+		# Remove any lines that do not look like function definitions
+		/^[[:space:]]*(function[[:space:]]|.*\([[:space:]]*\)[[:space:]]*{?$)/!d;
+
+		# Normalise definition syntax
+		s/^[[:space:]]*function[[:space:]]+//g;
+
+		# Parse out the names
+		s/^[[:space:]]*([^[[:space:]({]+).*/\1/g;
+
+		# Remove anything with a ddtt?:, user:, or dep: prefix (these are reserved)
+		/^(ddtt?|user|dep):/d;
+
+		# Also remove before/after functions
+		/^(before|after)$/d;
+	' "${1}" 2> /dev/null
+}
+
+# Prints a 'signal' to be passed to ddt:summarise
+ddt:return_signal() {
+	ddt:puts_debug "Returning signal ${1}: ${2//$'\n'/' '}"
+	printf '%s %s\n' "${1}" "${2}"
+}
+
+# Formats and summarises the test results; this function provides almost all of
+# the script's actual output, and then exits appropriately
+ddt:summarise() {
+	local tests dots signal message
+
+	# Disable colours if we've been asked to do so
+	if [[ "${ddt['colour']}" == 'never' ]]; then
+		unset ansi ; export ansi
+
+	# Or if we're in auto mode and we're not outputting to a tty
+	elif [[ "${ddt['colour']}" == 'auto' ]]; then
+		if [[ ! -t 1 ]] || [[ ! -t 2 ]]; then
+			unset ansi ; export ansi
+		fi
+	fi
+
+	declare -A tests ; tests=(
+		  [total]=0
+		 [passed]=0
+		 [failed]=0
+		[success]=0
+	)
+
+	# 80 dots
+	dots="$( yes '.' | head -80 | tr -d $'\n' )"
+
+	# Iterate through the test data we were provided
+	while read signal message; do
+		case "${signal}" in
+			# 40x: Reportable errors
+			40*)
+				ddt:puts_error "${message}"
+				;;
+
+			# Plan description
+			100)
+				# Add a blank line if this isn't the first plan
+				[[ "${tests['total']}" -gt '0' ]] && printf '\n'
+
+				printf '%s\n' "${ansi['bold']}${message}${ansi['reset']}"
+				;;
+
+			# Passing test
+			200)
+				(( tests['total']++ ))
+				(( tests['passed']++ ))
+
+				printf '  %s %s %s\n' \
+					"${message//_/ }" \
+					"${ansi['grey']}${dots:$(( ${#message} + 10 ))}${ansi['reset']}" \
+					"${ansi['green']}[PASS]${ansi['reset']}"
+				;;
+
+			# Failing test
+			500)
+				(( tests['total']++ ))
+				(( tests['failed']++ ))
+
+				printf '  %s %s %s\n' \
+					"${message//_/ }" \
+					"${ansi['grey']}${dots:$(( ${#message} + 10 ))}${ansi['reset']}" \
+					"${ansi['red']}[FAIL]${ansi['reset']}"
+
+				# If we have -v, output the trace as well
+				if [[ -n "${ddt['verbose']}" ]]; then
+					ddt:print_trace < "${ddt['temp']}/${message}"
+				fi
+				;;
+		esac
+	done
+
+	if [[ "${tests['total']}" -gt '0' ]]; then
+		# Display the summary at the end
+		printf '\n%s\n' "--- ${ansi['bold']}ddt test results${ansi['reset']} ---"
+
+		tests['success']="$(
+			echo "${tests['passed']}" "${tests['total']}" |
+			awk '{ print int( ($1 / $2) * 100 ); }'
+		)"
+
+		printf '%s' "${tests['total']} test(s) performed, "
+		printf '%s' "${tests['passed']} test(s) passed, "
+		printf '%s' "${tests['failed']} test(s) failed, "
+		printf '%s' "${tests['success']}% success"
+		printf '\n'
+	fi
+
+	# Exit with 2 if any tests failed
+	[[ "${tests['failed']}" -gt '0' ]] && exit 2
+
+	exit 0
+}
+
+# Formats bash xtrace results for output within ddt:summarise
+ddt:print_trace() {
+	sed ${ddt['sedopt']} "
+		1d;
+		s/^/      /;
+		\$s/(.*)/${ansi['magenta']}\1${ansi['reset']}/;
+	"
+}
+
+

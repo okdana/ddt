@@ -1,0 +1,76 @@
+# vim: set ft=zsh:
+# This a basic test plan for running against ddt itself
+
+describe 'ddt(1) self-test'
+
+passes_lint_check() {
+	output="$( bash -n "$( type -P ddt 2> /dev/null )" 2>&1 || true )"
+
+	[[ -z "${output}" ]]
+}
+
+returns_full_usage_with_help_option() {
+	output="$( ddt --help 2>&1 || true )"
+
+	grep -qF 'options:' <<< "${output}"
+}
+
+returns_brief_usage_with_invalid_option() {
+	output="$( ddt -Z 2>&1 || true )"
+
+	grep -qF 'invalid' <<< "${output}" &&
+	grep -qF 'usage:' <<< "${output}"
+}
+
+properly_handles_file_name_with_spaces() {
+	output="$( ddt '/a/b/c/%ddt%test with spaces%' 2>&1 || true )"
+
+	lines="$( grep -c '.' <<< "${output}" )"
+	 text="$( grep -c "^ddt: File '/a/b/c/%ddt%test with spaces%'" <<< "${output}" )"
+
+	[[ "${lines} ${text}" == '1 1' ]]
+}
+
+properly_handles_FIFO() {
+	output="$( ddt <( echo $'true_test() {\ntrue\n}' ) 2>&1 || true )"
+
+	grep -q 'true test.*PASS' <<< "${output}" &&
+	grep -q 'ddt test results' <<< "${output}"
+}
+
+properly_handles_1_erroneous_file_name() {
+	output="$( ddt '/a/b/c/%ddt%test%' 2>&1 || true )"
+
+	lines="$( grep -c '.' <<< "${output}" )"
+	 text="$( grep -c '^ddt: File' <<< "${output}" )"
+
+	[[ "${lines} ${text}" == '1 1' ]]
+}
+
+properly_handles_3_erroneous_file_names() {
+	output="$( ddt '/a/b/c/%ddt%test1%' '/a/b/c/%ddt%test2%' '/a/b/c/%ddt%test3%' 2>&1 || true )"
+
+	lines="$( grep -c '.' <<< "${output}" )"
+	 text="$( grep -c '^ddt: File' <<< "${output}" )"
+
+	[[ "${lines} ${text}" == '3 3' ]]
+}
+
+properly_handles_invalid_binary_file() {
+	output="$( ddt '/bin/sh' 2>&1 || true )"
+
+	lines="$( grep -c '.' <<< "${output}" )"
+	 text="$( grep -c '^ddt: .* valid' <<< "${output}" )"
+
+	[[ "${lines} ${text}" == '1 1' ]]
+}
+
+before() {
+	beforeVariable="$$"
+}
+
+runs_before_function_prior_to_testing() {
+	[[ "${beforeVariable}" == "$$" ]]
+}
+
+

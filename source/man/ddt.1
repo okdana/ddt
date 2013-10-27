@@ -1,0 +1,88 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "DDT" "1" "October 2013" "" ""
+.
+.SH "NAME"
+\fBddt\fR \- unit\-testing tool for shell scripts
+.
+.SH "SYNOPSIS"
+\fBddt\fR [\-h|\-V] [\-q|\-v] [\-c \fIwhen\fR] [\-p \fIprefix\fR] [\fIplan\fR \.\.\.]
+.
+.SH "DESCRIPTION"
+\fBddt\fR is a unit\-testing tool for shell scripts and other command\-line tools which is based on (and largely compatible with) roundup(1)\. It accepts one or more \'test plans\', bash shell scripts containing functions that represent individual tests\. If a test plan is not specified, the current directory will be searched for files ending in \.ddtt\.
+.
+.SH "OPTIONS"
+\fB\-h\fR, \fB\-\-help\fR, \fB\-\-longhelp\fR
+.
+.br
+Displays this help information and exits\.
+.
+.P
+\fB\-V\fR, \fB\-\-version\fR
+.
+.br
+Displays version information and exits\.
+.
+.P
+\fB\-v\fR, \fB\-\-verbose\fR
+.
+.br
+Displays trace information for failing tests\.
+.
+.P
+\fB\-q\fR, \fB\-\-quiet\fR
+.
+.br
+Hides all output\. Useful when only the exit status matters\.
+.
+.P
+\fB\-c\fR \fIwhen\fR, \fB\-\-colour\fR \fIwhen\fR, \fB\-\-color\fR \fIwhen\fR
+.
+.br
+Specifies when output should be colourised\. \fIwhen\fR may be \'auto\', \'always\', or \'never\' (\'auto\' is the default)\.
+.
+.P
+\fB\-p\fR \fIprefix\fR, \fB\-\-prefix\fR \fIprefix\fR
+.
+.br
+Sets the DDT_PREFIX environmental variable and passes it to all test plans\. This variable is meant to support comparative testing amongst versions of a test target located under different paths\. However, the test plan must be explicitly designed to support this behaviour; if it isn\'t, this option will have no special effect\.
+.
+.P
+\fIplan\fR \.\.\.
+.
+.br
+Specifies one or more files to use as test plans\. If none are specified, the current directory will be searched for files ending in \fB\.ddtt\fR\.
+.
+.SH "EXIT STATUS"
+\fBddt\fR exits with one of the following values:
+.
+.P
+\fB0\fR \-\- All tests completed successfully\.
+.
+.br
+\fB1\fR \-\- Invalid input was provided, or a run\-time error occurred\.
+.
+.br
+\fB2\fR \-\- All tests completed, but some failed\.
+.
+.br
+\fB6\fR \-\- This help information was displayed\.
+.
+.SH "NOTES"
+\fBddt\fR requires bash 4\.0 or greater\.
+.
+.SH "SEE ALSO"
+roundup(1), roundup(5)
+.
+.SH "BUGS"
+Please report bugs at: http://github\.com/okdana/ddt/issues
+.
+.SH "CREDITS"
+\fBddt\fR is distributed under the MIT open\-source licence\.
+.
+.P
+\fBddt\fR was written by dana geier, based loosely on roundup by Blake Mizerany\.
+.
+.P
+roundup is (c) 2010 Blake Mizerany\.

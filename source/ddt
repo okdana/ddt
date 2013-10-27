@@ -1,0 +1,243 @@
+#!/bin/bash
+# vim: set ft=zsh:
+
+# Increment this!
+REVISION='30 (2013/10/27)'
+
+##: synopsis: [-h|-V] [-q|-v] [-c <when>] [-p <prefix>] [<plan> ...]
+
+#?: `ddt` is a unit-testing tool for shell scripts and other command-line tools
+#?: which is based on (and largely compatible with) `roundup`. It accepts one or
+#?: more 'test plans', bash shell scripts containing functions that represent
+#?: individual tests. If a test plan is not specified, the current directory will be
+#?: searched for files ending in .ddtt.
+#?:
+#?: options:
+#?:   -h, --help, --longhelp
+#?:       Displays this help information and exits.
+#?:
+#?:   -V, --version
+#?:       Displays version information and exits.
+#?:
+#?:   -v, --verbose
+#?:       Displays trace information for failing tests.
+#?:
+#?:   -q, --quiet
+#?:       Hides all output. Useful when only the exit status matters.
+#?:
+#?:   -c <when>, --colour <when>, --color <when>
+#?:       Specifies when output should be colourised. <when> may be 'auto',
+#?:       'always', or 'never' ('auto' is the default).
+#?:
+#?:   -p, <prefix>, --prefix <prefix>
+#?:       Sets the DDT_PREFIX environmental variable and passes it to all test
+#?:       plans. This variable is meant to support comparative testing amongst
+#?:       versions of a test target located under different paths. However, the test
+#?:       plan must be explicitly designed to support this behaviour; if it isn't, 
+#?:       this option will have no special effect.
+#?:
+#?:   <plan> ...
+#?:       Specifies one or more files to use as test plans. If none are specified,
+#?:       the current directory will be searched for files ending in .ddtt.
+#?:
+#?: exit status:
+#?:   `ddt` exits with one of the following values:
+#?:     0  —  All tests completed successfully.
+#?:     1  —  Invalid input was provided, or a run-time error occurred.
+#?:     2  —  All tests completed, but some failed.
+#?:     6  —  This help information was displayed.
+
+
+source "$( dirname "${0}" )/variables"
+source "$( dirname "${0}" )/functions"
+source "$( dirname "${0}" )/getopt"
+
+
+# Create a temp directory to save test output and logs
+ddt['temp']="$(
+	# BSD/Mac `mktemp`
+	if [[ "$( mktemp --version 2>&1 )" == *'illegal option'* ]]; then
+		mktemp -dt 'ddt'
+	# GNU `mktemp`
+	else
+		mktemp -d --tmpdir 'ddt.XXXXXXXX'
+	fi
+)"
+
+ddt:puts_debug "Created temp directory: ${ddt['temp']}"
+
+# Try to delete temp directory on exit (unless --debug)
+if [[ -z "${ddt['debug']}" ]]; then
+	trap "rm -rf \"${ddt['temp']}\"" EXIT
+fi
+
+
+# If we got --quiet... be quiet
+if [[ -n "${ddt['quiet']}" ]]; then
+	exec 1> /dev/null 2>&1
+
+# Otherwise, if we got --debug, output to log
+elif [[ -n "${ddt['debug']}" ]]; then
+	exec > >( tee -a "${ddt['temp']}/log" ) 2>&1
+fi
+
+
+ddt:puts_debug "${ddt['name']}[$$] starting at $( date +'%Y-%m-%d %H:%M:%S' )"
+
+
+# Require bash 4.x
+# (There've probably been a lot of errors already if they're on 3.x)
+ddt:puts_debug "bash version: ${BASH_VERSION}"
+
+if [[ "${BASH_VERSINFO[0]}" < '4' ]]; then
+	ddt:die 'bash 4.0 or higher is required — aborting.'
+fi
+
+
+# If we don't have any file arguments, look for .ddtt files in the current directory
+if [[ "$#" == '0' ]]; then
+	ddt:puts_debug "No file arguments; looking in current directory"
+
+	shopt -s nullglob
+	set -- *.ddtt
+fi
+
+ddt:puts_debug "Positional parameters: ${@}"
+
+# If we still don't have any files, die
+if [[ "$#" == '0' ]]; then
+	ddt:die_with_usage 'No test plans specified nor found in current directory — aborting.'
+fi
+
+
+# Iterate through each test plan
+for plan in "${@}"; do
+	ddt:puts_debug "Working on plan '${plan}'"
+
+	# Make sure this file exists and is accessible
+	if [[ ! -r "${plan}" ]]; then
+		ddt:return_signal 400 "File '${plan}' is missing or inaccessible."
+		continue
+
+	# Also make sure the contents look valid
+	elif [[ ! "$( file -b "${plan}" 2>&1 )" =~ (text|fifo)  ]]; then
+		ddt:puts_debug "File type: $( file -b "${plan}" 2>&1 )"
+
+		ddt:return_signal 401 "File '${plan}' doesn't look like a valid test plan."
+		continue
+
+	# And, just to be abundantly cautious, see if it's got valid syntax
+	elif ! bash -n "${plan}" > /dev/null 2>&1; then
+		ddt:puts_debug "Lint errors: $( bash -n "${plan}" > /dev/null 2>&1 )"
+
+		ddt:return_signal 402 "File '${plan}' doesn't look like a valid test plan (probable syntax error)."
+		continue
+	fi
+
+	# Use $thisPlan to store current plan attributes
+	unset thisPlan ; declare -A thisPlan
+	thisPlan=(
+		['file']="${plan}"
+		['tests']=''
+		['description']=''
+	)
+
+	# Set the default description to the plan name minus file extension
+	thisPlan['description']="$( basename "${thisPlan['file']}" )"
+	thisPlan['description']="${thisPlan['description']%%.*}"
+
+	# Get the tests in this plan
+	thisPlan['tests']="$( ddt:get_tests "${thisPlan['file']}" )"
+
+	# If the above failed, the plan isn't usable
+	if [[ -z "${thisPlan['tests']}" ]]; then
+		ddt:return_signal 403 "File '${thisPlan['file']}' contains no usable tests."
+		continue
+	fi
+
+	ddt:puts_debug "Tests found: ${thisPlan['tests']//$'\n'/ }"
+
+	export thisPlan
+
+    # Using a sub-shell as a sand box, source the test plan and run the tests
+    (
+		# Allow the plan description to be overridden with `describe`
+		describe() {
+			thisPlan['description']="$*"
+		}
+
+		# Provide do-nothing default pre/post-test functions; they may be re-defined in the plan
+		before() { : ; }
+		after()  { : ; }
+
+		ddt:puts_debug 'Sourcing plan'
+
+		# Source the test plan
+		source "${thisPlan['file']}" 2> /dev/null
+
+		# Output the description signal
+		ddt:return_signal 100 "${thisPlan['description']//$'\n'/' '}"
+
+		# Iterate through the individual tests
+		while read test; do
+			ddt:puts_debug "Working on test '${test}'"
+
+			(
+				before
+
+				(
+					# `set -xe` immediately dies on error and outputs a trace;
+					# we'll save this output to file for later
+					set -xe
+					${test}
+				) > "${ddt['temp']}/${test}" 2>&1
+
+				testResult=$?
+
+				after
+
+				# Print pass/fail signal and test name
+				if [[ "${testResult}" -gt '0' ]]; then
+					testResult='500'
+				else
+					testResult='200'
+				fi
+
+				ddt:return_signal "${testResult}" "${test}" 
+			)
+		done <<< "${thisPlan['tests']}"
+	)
+done |
+
+# All signals are piped here for summary
+ddt:summarise
+
+
+
+
+# #############################################################################
+# 
+# Original contents of `roundup`'s licence:
+# 
+# Copyright (c) 2010 Blake Mizerany <http://blakemizerany.com/about>
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to
+# deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+# sell copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER 
+# IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+# 
+# #############################################################################
+
+

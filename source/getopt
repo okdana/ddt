@@ -1,0 +1,81 @@
+# vim: set ft=zsh:
+# ddt option handling
+
+# Enhanced (GNU-style) `getopt`
+if [[ "$( getopt --version 2>&1 )" == *'getopt'* ]]; then
+	args="$(
+		getopt -n "${ddt['name']}" \
+			-o 'c:hp:qvV' \
+			-l 'help,longhelp,version' \
+			-l 'quiet,verbose,debug' \
+			-l 'colour:,color:' \
+			-l 'prefix:' \
+			-- "$@"
+	)" || ddt:die_with_usage
+
+	eval set -- $args
+
+	# Iterate through arguments
+	while true; do
+		case "${1}" in
+			# Usage help
+			--help|-h|--longhelp) ddt:print_usage --full ;;
+
+			# Version information
+			--version|-V) ddt:print_version ;;
+
+			# Quiet
+			--quiet|-q)
+				ddt['verbose']=''
+				ddt['quiet']='true'
+				shift
+				;;
+
+			# Verbose
+			--verbose|-v)
+				ddt['verbose']='true'
+				ddt['quiet']=''
+				shift
+				;;
+
+			# Debug (meant for development testing)
+			--debug)
+				ddt['debug']='true'
+				ddt['quiet']=''
+				shift
+				;;
+
+			# Colours
+			--colour|-c|--color)
+				case "${2,,}" in
+					'always'|'yes'|'y'|'on') ddt['colour']='always' ;;
+					'never'|'no'|'n'|'off')  ddt['colour']='never' ;;
+					'auto'|'automatic')      ddt['colour']='auto' ;;
+					*)
+						ddt:die_with_usage "Illegal colour setting '${2}' — aborting."
+						;;
+				esac
+
+				shift 2
+				;;
+
+			# Prefix
+			--prefix|-p)
+				export DDT_PREFIX="${2}"
+				shift 2
+				;;
+
+			# Break
+			--) shift ; break ;;
+
+			# Unrecognised option
+			*) ddt:die_with_usage "Illegal option '${1}' — aborting." ;;
+		esac
+	done
+
+# TODO: Basic `getopt`
+else
+	ddt:die 'Enhanced (GNU-style) `getopt` is currently required — aborting.'
+fi
+
+
