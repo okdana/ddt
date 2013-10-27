@@ -8,8 +8,8 @@
 
 ## todo
 
-[ ] Add basic argument handling for systems without extended `getopt`.
-[ ] Add FIFO support.
-[ ] Figure out weird recursive testing problems.
-[ ] Improve function definition syntax parsing.
+- [ ] Add basic argument handling for systems without extended getopt.
+- [ ] Add FIFO support.
+- [ ] Figure out weird recursive testing problems.
+- [ ] Improve function definition syntax parsing.
 
