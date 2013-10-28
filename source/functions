@@ -83,6 +83,21 @@ ddt:print_version() {
 	exit 6
 }
 
+ddt:resolve_path() {
+	local path
+	{
+		pushd "$( dirname "${1}" )" &&
+		path="${PWD}" &&
+		popd
+	} > /dev/null 2>&1
+
+	if [[ -n "${path}" ]]; then
+		printf '%s' "${path}/${1##*/}"
+	else
+		return 1
+	fi
+}
+
 # Prints a list of tests (functions) found in the specified test plan file
 ddt:get_tests() {
 	sed ${ddt['sedopt']} '
@@ -138,6 +153,11 @@ ddt:summarise() {
 	# Iterate through the test data we were provided
 	while read signal message; do
 		case "${signal}" in
+			# 30x: Misc. output
+			30*)
+				ddt:puts "${message}"
+				;;
+
 			# 40x: Reportable errors
 			40*)
 				ddt:puts_error "${message}"

@@ -5,11 +5,12 @@
 if [[ "$( getopt --version 2>&1 )" == *'getopt'* ]]; then
 	args="$(
 		getopt -n "${ddt['name']}" \
-			-o 'c:hp:qvV' \
+			-o 'c:hp:qvVW' \
 			-l 'help,longhelp,version' \
 			-l 'quiet,verbose,debug' \
 			-l 'colour:,color:' \
 			-l 'prefix:' \
+			-l 'paths' \
 			-- "$@"
 	)" || ddt:die_with_usage
 
@@ -61,8 +62,14 @@ if [[ "$( getopt --version 2>&1 )" == *'getopt'* ]]; then
 
 			# Prefix
 			--prefix|-p)
-				export DDT_PREFIX="${2}"
+				export DDT_PREFIX="${2%/}"
 				shift 2
+				;;
+
+			# Print paths
+			--paths|-W)
+				ddt['mode']='paths'
+				shift
 				;;
 
 			# Break

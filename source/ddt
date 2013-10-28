@@ -2,7 +2,7 @@
 # vim: set ft=zsh:
 
 # Increment this!
-REVISION='30 (2013/10/27)'
+REVISION='31 (2013/10/27)'
 
 ##: synopsis: [-h|-V] [-q|-v] [-c <when>] [-p <prefix>] [<plan> ...]
 
@@ -34,7 +34,12 @@ REVISION='30 (2013/10/27)'
 #?:       plans. This variable is meant to support comparative testing amongst
 #?:       versions of a test target located under different paths. However, the test
 #?:       plan must be explicitly designed to support this behaviour; if it isn't, 
-#?:       this option will have no special effect.
+#?:       this option will have no special effect. To ensure consistency, a trailing
+#?:       slash is always stripped from the path prefix prior to export.
+#?:
+#?:   -W, --paths
+#?:       Prints the absolute paths of the test plan(s) that would be executed, but
+#?:       doesn't actually execute them.
 #?:
 #?:   <plan> ...
 #?:       Specifies one or more files to use as test plans. If none are specified,
@@ -111,6 +116,8 @@ fi
 
 
 # Iterate through each test plan
+# REMEMBER: Everything in this loop gets piped to ddt:summarise(),
+# so we can't directly output text via STDOUT!
 for plan in "${@}"; do
 	ddt:puts_debug "Working on plan '${plan}'"
 
@@ -156,6 +163,12 @@ for plan in "${@}"; do
 	fi
 
 	ddt:puts_debug "Tests found: ${thisPlan['tests']//$'\n'/ }"
+
+	# If we've got -W, just print the path and move on
+	if [[ "${ddt['mode']}" == 'paths' ]]; then
+		ddt:return_signal 300 "$( ddt:resolve_path "${thisPlan['file']}" )"
+		continue
+	fi
 
 	export thisPlan
 
