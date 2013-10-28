@@ -4,7 +4,7 @@
 # Increment this!
 REVISION='31 (2013/10/27)'
 
-##: synopsis: [-h|-V] [-q|-v] [-c <when>] [-p <prefix>] [<plan> ...]
+##: synopsis: [-h|-V] [-q|-v] [-c <when>] [-p <prefix>] [-W] [<plan> ...]
 
 #?: `ddt` is a unit-testing tool for shell scripts and other command-line tools
 #?: which is based on (and largely compatible with) `roundup`. It accepts one or
