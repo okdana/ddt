@@ -13,64 +13,53 @@
 \fBddt\fR is a unit\-testing tool for shell scripts and other command\-line tools which is based on (and largely compatible with) roundup(1)\. It accepts one or more \'test plans\', bash shell scripts containing functions that represent individual tests\. If a test plan is not specified, the current directory will be searched for files ending in \.ddtt\.
 .
 .SH "OPTIONS"
-\fB\-h\fR, \fB\-\-help\fR, \fB\-\-longhelp\fR
 .
-.br
+.TP
+\fB\-h\fR, \fB\-\-help\fR, \fB\-\-longhelp\fR
 Displays this help information and exits\.
 .
-.P
+.TP
 \fB\-V\fR, \fB\-\-version\fR
-.
-.br
 Displays version information and exits\.
 .
-.P
+.TP
 \fB\-v\fR, \fB\-\-verbose\fR
-.
-.br
 Displays trace information for failing tests\.
 .
-.P
+.TP
 \fB\-q\fR, \fB\-\-quiet\fR
-.
-.br
 Hides all output\. Useful when only the exit status matters\.
 .
-.P
+.TP
 \fB\-c\fR \fIwhen\fR, \fB\-\-colour\fR \fIwhen\fR, \fB\-\-color\fR \fIwhen\fR
-.
-.br
 Specifies when output should be colourised\. \fIwhen\fR may be \'auto\', \'always\', or \'never\' (\'auto\' is the default)\.
 .
-.P
+.TP
 \fB\-p\fR \fIprefix\fR, \fB\-\-prefix\fR \fIprefix\fR
-.
-.br
 Sets the DDT_PREFIX environmental variable and passes it to all test plans\. This variable is meant to support comparative testing amongst versions of a test target located under different paths\. However, the test plan must be explicitly designed to support this behaviour; if it isn\'t, this option will have no special effect\.
 .
-.P
-\fB\-W\fR, \fB\-\-paths\fR Prints the absolute paths of the test plan(s) that would be executed, but doesn\'t actually execute them\.
+.TP
+\fB\-W\fR, \fB\-\-paths\fR
+Prints the absolute paths of the test plan(s) that would be executed, but doesn\'t actually execute them\.
 .
-.P
+.TP
 \fIplan\fR \.\.\.
-.
-.br
 Specifies one or more files to use as test plans\. If none are specified, the current directory will be searched for files ending in \fB\.ddtt\fR\.
 .
 .SH "EXIT STATUS"
 \fBddt\fR exits with one of the following values:
 .
 .P
-\fB0\fR \-\- All tests completed successfully\.
+\fB0\fR \~\~ All tests completed successfully\.
 .
 .br
-\fB1\fR \-\- Invalid input was provided, or a run\-time error occurred\.
+\fB1\fR \~\~ Invalid input was provided, or a run\-time error occurred\.
 .
 .br
-\fB2\fR \-\- All tests completed, but some failed\.
+\fB2\fR \~\~ All tests completed, but some failed\.
 .
 .br
-\fB6\fR \-\- This help information was displayed\.
+\fB6\fR \~\~ This help information was displayed\.
 .
 .SH "NOTES"
 \fBddt\fR requires bash 4\.0 or greater\.

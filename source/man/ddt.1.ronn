@@ -15,45 +15,45 @@ searched for files ending in .ddtt.
 
 ## OPTIONS
 
-`-h`, `--help`, `--longhelp`  
-     Displays this help information and exits.
+* `-h`, `--help`, `--longhelp`:
+  Displays this help information and exits.
 
-`-V`, `--version`  
-     Displays version information and exits.
+* `-V`, `--version`:
+  Displays version information and exits.
 
-`-v`, `--verbose`  
-     Displays trace information for failing tests.
+* `-v`, `--verbose`:
+  Displays trace information for failing tests.
 
-`-q`, `--quiet`  
-     Hides all output. Useful when only the exit status matters.
+* `-q`, `--quiet`:
+  Hides all output. Useful when only the exit status matters.
 
-`-c` <when>, `--colour` <when>, `--color` <when>  
-     Specifies when output should be colourised. <when> may be 'auto',
-     'always', or 'never' ('auto' is the default).
+* `-c` <when>, `--colour` <when>, `--color` <when>:
+  Specifies when output should be colourised. <when> may be 'auto',
+  'always', or 'never' ('auto' is the default).
 
-`-p` <prefix>, `--prefix` <prefix>  
-     Sets the DDT_PREFIX environmental variable and passes it to all test
-     plans. This variable is meant to support comparative testing amongst
-     versions of a test target located under different paths. However, the test
-     plan must be explicitly designed to support this behaviour; if it isn't, 
-     this option will have no special effect.
+* `-p` <prefix>, `--prefix` <prefix>:
+  Sets the DDT_PREFIX environmental variable and passes it to all test
+  plans. This variable is meant to support comparative testing amongst
+  versions of a test target located under different paths. However, the test
+  plan must be explicitly designed to support this behaviour; if it isn't, 
+  this option will have no special effect.
 
-`-W`, `--paths`
-     Prints the absolute paths of the test plan(s) that would be executed, but
-     doesn't actually execute them.
+* `-W`, `--paths`:
+  Prints the absolute paths of the test plan(s) that would be executed, but
+  doesn't actually execute them.
 
-<plan> ...  
-     Specifies one or more files to use as test plans. If none are specified,
-     the current directory will be searched for files ending in `.ddtt`.
+* <plan> ...:
+  Specifies one or more files to use as test plans. If none are specified,
+  the current directory will be searched for files ending in `.ddtt`.
 
 ## EXIT STATUS
 
 `ddt` exits with one of the following values:
 
-  `0` -- All tests completed successfully.  
-  `1` -- Invalid input was provided, or a run-time error occurred.  
-  `2` -- All tests completed, but some failed.  
-  `6` -- This help information was displayed.
+  `0` &nbsp;&nbsp; All tests completed successfully.  
+  `1` &nbsp;&nbsp; Invalid input was provided, or a run-time error occurred.  
+  `2` &nbsp;&nbsp; All tests completed, but some failed.  
+  `6` &nbsp;&nbsp; This help information was displayed.
 
 ## NOTES
 
