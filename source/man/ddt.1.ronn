@@ -38,6 +38,10 @@ searched for files ending in .ddtt.
      plan must be explicitly designed to support this behaviour; if it isn't, 
      this option will have no special effect.
 
+`-W`, `--paths`
+     Prints the absolute paths of the test plan(s) that would be executed, but
+     doesn't actually execute them.
+
 <plan> ...  
      Specifies one or more files to use as test plans. If none are specified,
      the current directory will be searched for files ending in `.ddtt`.
