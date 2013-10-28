@@ -2,6 +2,7 @@ TODO: ddt
 
 - Add basic argument handling for systems without extended getopt.
 - Add FIFO support.
+- Add support for specifying directories in addition to individual files.
 - Figure out weird recursive testing problems.
 - Improve function definition syntax parsing.
 

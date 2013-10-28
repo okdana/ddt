@@ -25,6 +25,7 @@ returns_usage_with_no_arguments() {
 
 - Add basic argument handling for systems without extended getopt.
 - Add FIFO support.
+- Add support for specifying directories in addition to individual files.
 - Figure out weird recursive testing problems.
 - Improve function definition syntax parsing.
 
