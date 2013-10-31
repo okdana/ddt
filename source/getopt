@@ -5,11 +5,12 @@
 if [[ "$( getopt --version 2>&1 )" == *'getopt'* ]]; then
 	args="$(
 		getopt -n "${ddt['name']}" \
-			-o 'c:hp:qvVW' \
+			-o 'c:hp:qsvVW' \
 			-l 'help,longhelp,version' \
 			-l 'quiet,verbose,debug' \
 			-l 'colour:,color:' \
 			-l 'prefix:' \
+			-l 'summarise,summarize' \
 			-l 'paths' \
 			-- "$@"
 	)" || ddt:die_with_usage
@@ -69,6 +70,12 @@ if [[ "$( getopt --version 2>&1 )" == *'getopt'* ]]; then
 			# Print paths
 			--paths|-W)
 				ddt['mode']='paths'
+				shift
+				;;
+
+			# Print only plan names and a summary
+			--summarise|-s|--summarize)
+				ddt['mode']='summarise'
 				shift
 				;;
 

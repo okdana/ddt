@@ -176,6 +176,7 @@ ddt:summarise() {
 				(( tests['total']++ ))
 				(( tests['passed']++ ))
 
+				[[ "${ddt['mode']}" != 'summarise' ]] &&
 				printf '  %s %s %s\n' \
 					"${message//_/ }" \
 					"${ansi['grey']}${dots:$(( ${#message} + 10 ))}${ansi['reset']}" \
@@ -187,6 +188,7 @@ ddt:summarise() {
 				(( tests['total']++ ))
 				(( tests['failed']++ ))
 
+				[[ "${ddt['mode']}" != 'summarise' ]] &&
 				printf '  %s %s %s\n' \
 					"${message//_/ }" \
 					"${ansi['grey']}${dots:$(( ${#message} + 10 ))}${ansi['reset']}" \
@@ -194,6 +196,7 @@ ddt:summarise() {
 
 				# If we have -v, output the trace as well
 				if [[ -n "${ddt['verbose']}" ]]; then
+					[[ "${ddt['mode']}" != 'summarise' ]] &&
 					ddt:print_trace < "${ddt['temp']}/${message}"
 				fi
 				;;

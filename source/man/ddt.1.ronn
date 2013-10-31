@@ -38,6 +38,9 @@ searched for files ending in .ddtt.
   plan must be explicitly designed to support this behaviour; if it isn't, 
   this option will have no special effect.
 
+* `-s`, `--summarise`, `--summarize`:
+  Outputs only the plan names and a final summary of the test results.
+
 * `-W`, `--paths`:
   Prints the absolute paths of the test plan(s) that would be executed, but
   doesn't actually execute them.
