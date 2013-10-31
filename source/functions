@@ -102,7 +102,7 @@ ddt:resolve_path() {
 ddt:get_tests() {
 	sed ${ddt['sedopt']} '
 		# Remove any lines that do not look like function definitions
-		/^[[:space:]]*(function[[:space:]]|.*\([[:space:]]*\)[[:space:]]*{?$)/!d;
+		/^[[:space:]]*(function[[:space:]]|.*\([[:space:]]*\)[[:space:]]*\{?$)/!d;
 
 		# Normalise definition syntax
 		s/^[[:space:]]*function[[:space:]]+//g;
