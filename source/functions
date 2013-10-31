@@ -217,7 +217,12 @@ ddt:summarise() {
 	fi
 
 	# Exit with 2 if any tests failed
-	[[ "${tests['failed']}" -gt '0' ]] && exit 2
+	if [[ "${tests['failed']}" -gt '0' ]]; then
+		exit 2
+	# Exit with 1 if we didn't run any tests
+	elif [[ "${tests['total']}" == '0' ]]; then
+		exit 1
+	fi
 
 	exit 0
 }
