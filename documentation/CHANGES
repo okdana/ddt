@@ -1,9 +1,15 @@
 CHANGES: ddt
 
-33 (2013/1):
+35 (2013/11/02):
+	- Added support for FIFOs (named pipes).
+
+34 (2013/11/01):
+	- Fixes for build system.
+
+33 (2013/10/31):
 	- Added `-s` option to print only file names and a final summary.
 
-32 (2013/10):
+32 (2013/10/31):
 	- Corrected a syntax error which could prevent the parsing of tests.
 	- Now exits with 1 if no tests were run (due to file errors, &c.).
 

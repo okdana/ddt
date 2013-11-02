@@ -2,7 +2,7 @@
 # vim: set ft=zsh:
 
 # Increment this!
-REVISION='33 (2013/10/31)'
+REVISION='35 (2013/11/02)'
 
 ##: synopsis: [-h|-V] [-q|-v] [-c <when>] [-p <prefix>] [-W|-s] [<plan> ...]
 
@@ -124,36 +124,52 @@ fi
 for plan in "${@}"; do
 	ddt:puts_debug "Working on plan '${plan}'"
 
-	# Make sure this file exists and is accessible
-	if [[ ! -r "${plan}" ]]; then
-		ddt:return_signal 400 "File '${plan}' is missing or inaccessible."
-		continue
-
-	# Also make sure the contents look valid
-	elif [[ ! "$( file -b "${plan}" 2>&1 )" =~ (text|fifo)  ]]; then
-		ddt:puts_debug "File type: $( file -b "${plan}" 2>&1 )"
-
-		ddt:return_signal 401 "File '${plan}' doesn't look like a valid test plan."
-		continue
-
-	# And, just to be abundantly cautious, see if it's got valid syntax
-	elif ! bash -n "${plan}" > /dev/null 2>&1; then
-		ddt:puts_debug "Lint errors: $( bash -n "${plan}" > /dev/null 2>&1 )"
-
-		ddt:return_signal 402 "File '${plan}' doesn't look like a valid test plan (probable syntax error)."
-		continue
-	fi
-
 	# Use $thisPlan to store current plan attributes
 	unset thisPlan ; declare -A thisPlan
 	thisPlan=(
+		['name']="${plan}"
 		['file']="${plan}"
+		['type']=''
 		['tests']=''
 		['description']=''
 	)
 
+	# Get file type
+	thisPlan['type']="$( file -b "${thisPlan['file']}" 2>&1 )"
+
+	ddt:puts_debug "File type: ${thisPlan['type']}"
+
+	# FIFO detection
+	if [[ "${thisPlan['file']}" == *'/fd/'* ]] && [[ "${thisPlan['type']}" == *'pipe'* ]]; then
+		# Copy to a temp file (is there a better way to do this?)
+		cat "${thisPlan['file']}" > "${ddt['temp']}/fifo"
+
+		# Update plan attributes
+		thisPlan['name']='<named pipe>'
+		thisPlan['file']="${ddt['temp']}/fifo"
+	fi
+
+	# Make sure the file exists and is accessible
+	if [[ ! -r "${thisPlan['file']}" ]]; then
+		ddt:return_signal 400 "File '${thisPlan['name']}' is missing or inaccessible."
+		continue
+
+	# Also make sure the contents look valid
+	elif [[ "${thisPlan['type']}" != *'text'* ]] && [[ "${thisPlan['name']}" != '<named pipe>' ]]; then
+
+		ddt:return_signal 401 "File '${thisPlan['name']}' doesn't look like a valid test plan."
+		continue
+
+	# And, just to be abundantly cautious, see if it's got valid syntax
+	elif ! bash -n "${thisPlan['file']}" > /dev/null 2>&1; then
+		ddt:puts_debug "Lint errors: $( bash -n "${thisPlan['file']}" 2>&1 )"
+
+		ddt:return_signal 402 "File '${thisPlan['name']}' doesn't look like a valid test plan (probable syntax error)."
+		continue
+	fi
+
 	# Set the default description to the plan name minus file extension
-	thisPlan['description']="$( basename "${thisPlan['file']}" )"
+	thisPlan['description']="$( basename "${thisPlan['name']}" )"
 	thisPlan['description']="${thisPlan['description']%%.*}"
 
 	# Get the tests in this plan
@@ -161,7 +177,7 @@ for plan in "${@}"; do
 
 	# If the above failed, the plan isn't usable
 	if [[ -z "${thisPlan['tests']}" ]]; then
-		ddt:return_signal 403 "File '${thisPlan['file']}' contains no usable tests."
+		ddt:return_signal 403 "File '${thisPlan['name']}' contains no usable tests."
 		continue
 	fi
 
