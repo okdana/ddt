@@ -77,7 +77,8 @@ lint:
 
 # Ensures clean release state and creates tag in git (development use)
 release: man lint
-	sh -c 'REV="`sed "/^REVISION=/!d; s/^[^0-9]*//; s/[^0-9].*$$//;" "$(CURDIR)/source/ddt"`" ; echo "Adding revision tag rev/$$REV..." ; git tag -a "rev/$$REV" -m "ddt revision $$REV"'
+	sh -c 'REV="`sed "/^REVISION=/!d; s/^[^0-9]*//; s/[^0-9].*$$//;" "$(CURDIR)/source/ddt"`" ; echo "Adding revision tag rev/$$REV..." ; git tag -m "ddt revision $$REV" "rev/$$REV"'
+	echo 'Use `git push origin --tags` to update remote tags.'
 
 
 .PHONY: build install uninstall privileges clean distclean man lint release
