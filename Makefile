@@ -10,8 +10,7 @@ config.mk:
 	echo 'Please run `./configure` prior to running `make`.'
 	false
 
-include ./config.mk
-
+-include ./config.mk
 
 # Merges/copies source files into /out
 build: config.mk
@@ -20,22 +19,21 @@ build: config.mk
 	
 	# This is a silly but functional way to merge all source files into a single script
 	cp "$(CURDIR)/source/ddt" "$(CURDIR)/out/bin/ddt"
-	sed -i '' '/^source .*variables/r $(CURDIR)/source/variables' "$(CURDIR)/out/bin/ddt"
-	sed -i '' '/^source .*functions/r $(CURDIR)/source/functions' "$(CURDIR)/out/bin/ddt"
-	sed -i '' '/^source .*getopt/r $(CURDIR)/source/getopt' "$(CURDIR)/out/bin/ddt"
-	sed -i '' '/^source /d;' "$(CURDIR)/out/bin/ddt"
+	sed -i.bak '/^source .*variables/r $(CURDIR)/source/variables' "$(CURDIR)/out/bin/ddt"
+	sed -i.bak '/^source .*functions/r $(CURDIR)/source/functions' "$(CURDIR)/out/bin/ddt"
+	sed -i.bak '/^source .*getopt/r $(CURDIR)/source/getopt' "$(CURDIR)/out/bin/ddt"
+	sed -i.bak '/^source /d;' "$(CURDIR)/out/bin/ddt"
+	rm -f "$(CURDIR)/out/bin/"*.bak
 	chmod a+x "$(CURDIR)/out/bin/ddt"
 	
 	cp "$(CURDIR)/source/man/ddt.1" "$(CURDIR)/out/man/ddt.1"
 	
 	echo 'Built into $(CURDIR)/out.'
 
-
 # Checks for root privileges
 privileges:
 	test $(shell id -u) = 0 || echo 'Root privileges needed.'
 	test $(shell id -u) = 0
-
 
 # Installs /out files to the appropriate locations
 install: build
@@ -52,7 +50,6 @@ uninstall:
 	
 	echo 'Succesfully un-installed.'
 
-
 # Removes /out directory
 clean:
 	rm -rf "$(CURDIR)/out"
@@ -60,7 +57,6 @@ clean:
 # Removes /out directory and config.mk
 distclean: clean
 	rm -f "$(CURDIR)/config.mk"
-
 
 # Builds roff file(s) with `ronn` (development use)
 man:
