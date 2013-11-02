@@ -1,22 +1,75 @@
 #!/bin/sh
 
-uname="$( uname )"
+unset prefix mandir
 
-if [ "$#" -eq 0 ]; then
-	echo "Configuring for $uname..."
-fi
+uname="`uname`"
 
+configure_help() {
+	echo 'usage: ./configure [--prefix <PREFIX>] [--mandir <MANDIR>]'
+	echo ''
+	echo 'options:'
+	echo '  --prefix <PREFIX>    Install files under <PREFIX>'
+	echo '                         [default: varies, usually /usr/local]'
+	echo '  --mandir <MANDIR>    Install man pages under <MANDIR>'
+	echo '                         [default: varies, usually <PREFIX>/man]'
+	echo ''
+	echo 'If no options are specified, defaults will be selected based on the host OS.'
+}
+
+# Loop through any command-line arguments
+while [ -n "$1" ]; do
+	case "$1" in
+		# --prefix /path
+		'--prefix')
+			[ -z "$2" ] && configure_help && exit 1
+			prefix="$2"
+			shift 2
+			;;
+		# --prefix=/path
+		'--prefix='*)
+			prefix="`echo "$1" | sed 's/^--prefix=//;'`"
+			shift 1
+			;;
+		# --mandir /path
+		'--mandir')
+			[ -z "$2" ] && configure_help && exit 1
+			mandir="$2"
+			shift 2
+			;;
+		# --mandir=/path
+		'--mandir='*)
+			mandir="`echo "$1" | sed 's/^--prefix=//;'`"
+			shift 1
+			;;
+		# Unrecognised option
+		*)
+			configure_help && exit 1
+			;;
+	esac
+done
+
+[ "$prefix x $mandir" = ' x ' ] && echo "Configuring for $uname..."
+
+# We'll run this no matter what, so that we can set anything they didn't specify
 case "$uname" in
 	'Darwin')
-		prefix='/usr/local'
-		mandir='/usr/share/man'
+		if [ -z "$prefix" ]; then
+			prefix='/usr/local'
+			[ -z "$mandir" ] && mandir='/usr/share/man'
+		# We'll assume they want their man pages under here too, i guess
+		else
+			[ -z "$mandir" ] && mandir="$prefix/man"
+		fi
 		;;
+
 	*)
-		prefix='/usr/local'
-		mandir="${prefix}/man"
+		[ -z "$prefix" ] && prefix='/usr/local'
+		[ -z "$mandir" ] && mandir="$prefix/man"
 		;;
 esac
 
-printf '%s\n%s\n' "PREFIX := $prefix" "MANPREFIX := $mandir" > "`dirname "$0" `/config.mk"
+printf '%s\n%s\n' \
+	"PREFIX := $prefix" \
+	"MANPREFIX := $mandir" > "`dirname "$0" `/config.mk"
 
 

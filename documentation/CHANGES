@@ -1,5 +1,12 @@
 CHANGES: ddt
 
+33 (2013/1):
+	- Added `-s` option to print only file names and a final summary.
+
+32 (2013/10):
+	- Corrected a syntax error which could prevent the parsing of tests.
+	- Now exits with 1 if no tests were run (due to file errors, &c.).
+
 31 (2013/10/27):
 	- Added `-W` option to print paths.
 	- Now strips trailing slash from DDT_PREFIX to ensure consistency.
