@@ -2,7 +2,7 @@
 # vim: set ft=zsh:
 
 # Increment this!
-REVISION='35 (2013/11/02)'
+REVISION='36 (2013/11/03)'
 
 ##: synopsis: [-h|-V] [-q|-v] [-c <when>] [-p <prefix>] [-W|-s] [<plan> ...]
 
@@ -134,13 +134,8 @@ for plan in "${@}"; do
 		['description']=''
 	)
 
-	# Get file type
-	thisPlan['type']="$( file -b "${thisPlan['file']}" 2>&1 )"
-
-	ddt:puts_debug "File type: ${thisPlan['type']}"
-
 	# FIFO detection
-	if [[ "${thisPlan['file']}" == *'/fd/'* ]] && [[ "${thisPlan['type']}" == *'pipe'* ]]; then
+	if [[ -p "${thisPlan['file']}" ]]; then
 		# Copy to a temp file (is there a better way to do this?)
 		cat "${thisPlan['file']}" > "${ddt['temp']}/fifo"
 
@@ -149,13 +144,18 @@ for plan in "${@}"; do
 		thisPlan['file']="${ddt['temp']}/fifo"
 	fi
 
+	# Get file type
+	thisPlan['type']="$( file -b "${thisPlan['file']}" 2>&1 )"
+
+	ddt:puts_debug "File type: ${thisPlan['type']}"
+
 	# Make sure the file exists and is accessible
 	if [[ ! -r "${thisPlan['file']}" ]]; then
 		ddt:return_signal 400 "File '${thisPlan['name']}' is missing or inaccessible."
 		continue
 
 	# Also make sure the contents look valid
-	elif [[ "${thisPlan['type']}" != *'text'* ]] && [[ "${thisPlan['name']}" != '<named pipe>' ]]; then
+	elif [[ "${thisPlan['type']}" != *'text'* ]]; then
 
 		ddt:return_signal 401 "File '${thisPlan['name']}' doesn't look like a valid test plan."
 		continue
