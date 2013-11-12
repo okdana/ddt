@@ -2,7 +2,7 @@
 # vim: set ft=zsh:
 
 # Increment this!
-REVISION='36 (2013/11/03)'
+REVISION='36 (2013/11/12)'
 
 ##: synopsis: [-h|-V] [-q|-v] [-c <when>] [-p <prefix>] [-W|-s] [<plan> ...]
 
