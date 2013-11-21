@@ -15,7 +15,7 @@ if [[ "$( getopt --version 2>&1 )" == *'getopt'* ]]; then
 			-- "$@"
 	)" || ddt:die_with_usage
 
-	eval set -- $args
+	eval set -- "${args}"
 
 	# Iterate through arguments
 	while true; do
