@@ -2,7 +2,7 @@
 # vim: set ft=zsh:
 
 # Increment this!
-REVISION='36 (2013/11/12)'
+REVISION='36 (2013/11/20)'
 
 ##: synopsis: [-h|-V] [-q|-v] [-c <when>] [-p <prefix>] [-W|-s] [<plan> ...]
 
@@ -56,9 +56,9 @@ REVISION='36 (2013/11/12)'
 #?:     6  —  This help information was displayed.
 
 
-source "$( dirname "${0}" )/variables"
-source "$( dirname "${0}" )/functions"
-source "$( dirname "${0}" )/getopt"
+source "${0%/*}/variables"
+source "${0%/*}/functions"
+source "${0%/*}/getopt"
 
 
 # Create a temp directory to save test output and logs
@@ -97,17 +97,17 @@ ddt:puts_debug "${ddt['name']}[$$] starting at $( date +'%Y-%m-%d %H:%M:%S' )"
 # (There've probably been a lot of errors already if they're on 3.x)
 ddt:puts_debug "bash version: ${BASH_VERSION}"
 
-if [[ "${BASH_VERSINFO[0]}" < '4' ]]; then
+if [[ "${BASH_VERSINFO[0]}" -lt '4' ]]; then
 	ddt:die 'bash 4.0 or higher is required — aborting.'
 fi
 
 
 # If we don't have any file arguments, look for .ddtt files in the current directory
 if [[ "$#" == '0' ]]; then
-	ddt:puts_debug "No file arguments; looking in current directory"
+	ddt:puts_debug 'No file arguments; looking in current directory'
 
 	shopt -s nullglob
-	set -- *.ddtt
+	set -- ./*.ddtt
 fi
 
 ddt:puts_debug "Positional parameters: ${@}"
@@ -199,6 +199,7 @@ for plan in "${@}"; do
 		}
 
 		# Provide do-nothing default pre/post-test functions; they may be re-defined in the plan
+		prereq() { : ; }
 		before() { : ; }
 		after()  { : ; }
 
@@ -210,11 +211,15 @@ for plan in "${@}"; do
 		# Output the description signal
 		ddt:return_signal 100 "${thisPlan['description']//$'\n'/' '}"
 
+		# Ensure pre-requisites are met
+		prereq || { ddt:return_signal 499 ; exit ; }
+
 		# Iterate through the individual tests
 		while read test; do
 			ddt:puts_debug "Working on test '${test}'"
 
 			(
+				# Pre-test function
 				before
 
 				(
@@ -226,6 +231,7 @@ for plan in "${@}"; do
 
 				testResult=$?
 
+				# Post-test function
 				after
 
 				# Print pass/fail signal and test name
