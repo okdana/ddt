@@ -64,7 +64,7 @@ man:
 	which ronn > /dev/null 2>&1 || echo '`ronn` is required but not installed; try `gem install ronn`.'
 	which ronn > /dev/null 2>&1
 	
-	ronn -r "$(CURDIR)/source/man/ddt.1.ronn"
+	ronn -r --date=$(shell git log -1 --pretty='format:%ci' "$(CURDIR)/source/man/ddt.1.ronn" | cut -d ' ' -f 1) "$(CURDIR)/source/man/ddt.1.ronn"
 
 # Runs shell syntax check (development use)
 lint:
