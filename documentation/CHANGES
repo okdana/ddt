@@ -1,5 +1,9 @@
 CHANGES: ddt
 
+36 (2013/11/20):
+	- Added pre-requisite checking with prereq() function.
+	- Minor code improvements
+
 35 (2013/11/02):
 	- Added support for FIFOs (named pipes).
 
