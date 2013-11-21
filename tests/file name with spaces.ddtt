@@ -1,0 +1,10 @@
+# vim: set ft=zsh:
+# This a basic test plan for running against ddt itself
+
+describe 'ddt(1) self-test # 2'
+
+handles_file_names_with_spaces() {
+	true
+}
+
+

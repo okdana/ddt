@@ -1,0 +1,14 @@
+# vim: set ft=zsh:
+# This a basic test plan for running against ddt itself
+
+describe 'ddt(1) self-test # 3'
+
+prereq() {
+	false
+}
+
+this_test_should_never_run() {
+	false
+}
+
+
