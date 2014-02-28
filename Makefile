@@ -153,6 +153,10 @@ uninstall: config.mk privileges
 clean:
 	rm -rf 'out'
 
+# Aliases for distclean
+realclean: distclean
+cleanall:  distclean
+
 # Removes /out directory and config.mk
 distclean: clean
 	rm -f 'config.mk'
@@ -175,7 +179,11 @@ test: $(CURDIR)/out/bin/ddt
 
 # Lints, builds, runs tests, builds man page, ensures clean repo state,
 # updates revision, and creates tag in git (dev use only)
-release: lint build test man repo_state dev_revision
+release: changes lint build test man repo_state dev_revision
+	# Make sure CHANGES has been updated
+	echo 'Checking CHANGES file...'
+	grep -q '^$(GIT_NEXT_TAG) .*/.*:' 'documentation/CHANGES'
+	# Make sure repository looks good
 	echo 'Checking repository state...'
 	# Since we've done dev_revision, we should have source/ddt modified
 	test '$(shell git diff --name-only)' = 'source/ddt'
@@ -191,16 +199,26 @@ release: lint build test man repo_state dev_revision
 	#
 	# Now we can add the tag for the revision
 	echo 'Adding tag for rev/$(GIT_NEXT_TAG)...'
-	git tag -m 'ddt rev $(DDT_REVISION)' 'rev/$(GIT_NEXT_TAG)'
+	git tag -m 'ddt rev $(DDT_REVISION)' -a 'rev/$(GIT_NEXT_TAG)'
 	#
 	# Output the log so we can see what just happened
 	echo ''
-	git log -r -3
+	echo 'Last two commits:'
+	git log --reverse -2
 	#
 	echo ''
-	echo 'Use `git push origin --tags` to update remote tags.'
+	echo 'Use `git push origin --tags` to update remote.'
 
 
-.PHONY: help vars privileges repo_state revision local_revision dev_revision build install uninstall clean distclean man man_optional lint tests unit test release
+PHONY := help vars
+PHONY += privileges repo_state
+PHONY += local_revision revision dev_revision
+PHONY += build install uninstall
+PHONY += clean distclean realclean cleanall
+PHONY += man man_optional
+PHONY += lint test tests unit
+PHONY += changes release
+
+.PHONY: $(PHONY)
 
 
