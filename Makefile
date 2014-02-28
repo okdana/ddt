@@ -190,8 +190,8 @@ release: lint build test man repo_state dev_revision
 	git commit -m 'Updating source REVISION to $(DDT_REVISION).'
 	#
 	# Now we can add the tag for the revision
-	echo 'Adding tag for rev/$(NEXT_GIT_TAG)...'
-	git tag -m 'ddt rev $(DDT_REVISION)' 'rev/$(NEXT_GIT_TAG)'
+	echo 'Adding tag for rev/$(GIT_NEXT_TAG)...'
+	git tag -m 'ddt rev $(DDT_REVISION)' 'rev/$(GIT_NEXT_TAG)'
 	#
 	# Output the log so we can see what just happened
 	echo ''
