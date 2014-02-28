@@ -146,7 +146,7 @@ install: config.mk privileges build
 # Un-installs `ddt` from the system
 uninstall: config.mk privileges
 	rm -f "$(MANPREFIX)/man1/ddt.1"
-	rm "$(PREFIX)/bin/ddt" && echo 'Succesfully un-installed.' || true
+	rm "$(PREFIX)/bin/ddt" && echo 'Succesfully un-installed.' || echo 'Nothing found to un-install.'
 
 
 # Removes /out directory
@@ -169,17 +169,36 @@ unit:  test
 
 # Runs unit tests
 test: $(CURDIR)/out/bin/ddt
-	echo 'Running unit tests on $(shell out/bin/ddt -V)...'
+	echo 'Running unit tests on $(shell out/bin/ddt -qV)...'
 	out/bin/ddt -q tests/*
 
 
-# Lints, builds man page, ensures clean repo state,
+# Lints, builds, runs tests, builds man page, ensures clean repo state,
 # updates revision, and creates tag in git (dev use only)
 release: lint build test man repo_state dev_revision
-	echo hi
-	false
-	#sh -c 'REV="`sed "/^REVISION=/!d; s/^[^0-9]*//; s/[^0-9].*$$//;" "$(CURDIR)/source/ddt"`" ; echo "Adding revision tag rev/$$REV..." ; git tag -m "ddt revision $$REV" "rev/$$REV"'
-	#echo 'Use `git push origin --tags` to update remote tags.'
+	echo 'Checking repository state...'
+	# Since we've done dev_revision, we should have source/ddt modified
+	test '$(shell git diff --name-only)' = 'source/ddt'
+	# It should only have one line changed
+	git diff -U0 --no-color --shortstat 2>&1 | grep -qE ' 1 insertion.* 1 deletion'
+	# And it should be the REVISION
+	test '$(shell git diff -U0 --no-color --shortstat 2>&1 | grep -c '^[+-]REVISION=')' = '2'
+	#
+	# If we're good, we can commit the revision update
+	echo 'Committing revision update...'
+	git add source/ddt
+	git commit -m 'Updating source REVISION to $(DDT_REVISION).'
+	#
+	# Now we can add the tag for the revision
+	echo 'Adding tag for rev/$(NEXT_GIT_TAG)...'
+	git tag -m 'ddt rev $(DDT_REVISION)' 'rev/$(NEXT_GIT_TAG)'
+	#
+	# Output the log so we can see what just happened
+	echo ''
+	git log -r -3
+	#
+	echo ''
+	echo 'Use `git push origin --tags` to update remote tags.'
 
 
 .PHONY: help vars privileges repo_state revision local_revision dev_revision build install uninstall clean distclean man man_optional lint tests unit test release
