@@ -190,6 +190,7 @@ ddt:summarise() {
 	fi
 
 	declare -A tests ; tests=(
+		[skipped]=0
 		  [total]=0
 		 [passed]=0
 		 [failed]=0
@@ -209,6 +210,8 @@ ddt:summarise() {
 
 			# 499: Pre-requisites not met
 			499)
+				(( tests['skipped']++ ))
+
 				local message='pre-requisites not met for this test plan'
 
 				[[ "${ddt['mode']}" != 'summarise' ]] &&
@@ -270,18 +273,19 @@ ddt:summarise() {
 		esac
 	done
 
-	if [[ "${tests['total']}" -gt '0' ]]; then
+	if [[ "$(( ${tests['total']} + ${tests['skipped']} ))" -gt '0' ]]; then
 		# Display the summary at the end
 		printf '\n%s\n' "--- ${ansi['bold']}ddt test results${ansi['reset']} ---"
 
+		[[ "${tests['total']}" -gt '0' ]] &&
 		tests['success']="$(
 			echo "${tests['passed']}" "${tests['total']}" |
 			awk '{ print int( ($1 / $2) * 100 ); }'
 		)"
 
-		printf '%s' "${tests['total']} test(s) performed, "
-		printf '%s' "${tests['passed']} test(s) passed, "
-		printf '%s' "${tests['failed']} test(s) failed, "
+		printf '%s, ' "${tests['total']} test(s) performed"
+		printf '%s, ' "${tests['passed']} test(s) passed"
+		printf '%s, ' "${tests['failed']} test(s) failed"
 		printf '%s' "${tests['success']}% success"
 		printf '\n'
 	fi
