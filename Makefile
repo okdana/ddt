@@ -208,7 +208,7 @@ release: changes lint build test man repo_state dev_revision
 	git log --reverse -2
 	#
 	echo ''
-	echo 'Use `git push origin --tags` to update remote.'
+	echo 'Use `git push origin --all` to update remote.'
 
 
 PHONY := help vars
