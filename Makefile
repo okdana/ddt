@@ -76,7 +76,7 @@ local_revision: $(CURDIR)/out/bin/ddt
 	grep -q 'REVISION=.*# Auto-updated' 'out/bin/ddt'
 	#
 	echo "Updating local revision to: $(DDT_REVISION)"
-	sed -i.bak 's/^REVISION=.*# Auto-updated/REVISION="$(DDT_REVISION)" # Auto-updated/;' 'out/bin/ddt'
+	sed -i.bak 's/^REVISION=.*# Auto-updated/REVISION="$(DDT_REVISION)" # Auto-updated/;' 'out/bin/ddt' && rm 'out/bin/ddt.bak'
 
 # Updates the revision number in source
 dev_revision:
@@ -84,7 +84,7 @@ dev_revision:
 	grep -q 'REVISION=.*# Auto-updated' 'source/ddt'
 	#
 	echo "Updating source revision to: $(DDT_REVISION)"
-	sed -i.bak 's/^REVISION=.*# Auto-updated/REVISION="$(DDT_REVISION)" # Auto-updated/;' 'source/ddt'	
+	sed -i.bak 's/^REVISION=.*# Auto-updated/REVISION="$(DDT_REVISION)" # Auto-updated/;' 'source/ddt' && rm 'source/ddt.bak'
 
 # Ensures build has been run
 out/bin/ddt: build
