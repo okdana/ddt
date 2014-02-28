@@ -135,7 +135,7 @@ man_optional:
 
 
 # Updates local version and installs /out files to the appropriate locations
-install: config.mk privileges build
+install: config.mk privileges $(CURDIR)/out/bin/ddt
 	cp 'out/bin/ddt' "$(PREFIX)/bin/ddt"
 	#
 	# If the man page isn't there, that's fine
