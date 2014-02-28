@@ -63,9 +63,9 @@ privileges:
 
 # Helper: Checks for clean repository state
 repo_state:
-	test -n '$(GIT_STATUS)' && echo 'Repository state is unclean.' && git status
+	test -n '$(GIT_STATUS)' && echo 'Repository state is unclean.' && git status || true
+	test -n '$(GIT_STATUS)' || echo 'Repository state is clean.'
 	test -z '$(GIT_STATUS)'
-
 
 # Alias for local_revision
 revision: local_revision
