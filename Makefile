@@ -7,14 +7,14 @@
 
 # We use these in `make revision`
 TODAY           := $(shell date +'%Y-%m-%d')
-GIT_STATUS      := $(shell git status --porcelain 2>&1)
-GIT_LAST_TAG    := $(shell git tag -l 'rev/*' | tail -1 | grep -o '[0-9]*')
+GIT_STATUS      := $(shell git status --porcelain 2> /dev/null)
+GIT_LAST_TAG    := $(shell git tag -l 'rev/*' 2> /dev/null | tail -1 | grep -o '[0-9]*' || echo '0')
 GIT_NEXT_TAG    := $(shell expr $(GIT_LAST_TAG) + 1)
-GIT_REVISION    := $(shell git rev-parse --short=6 HEAD 2>&1)
+GIT_HASH        := $(shell git rev-parse --short=6 HEAD 2> /dev/null)
 REV_TAG         := $(shell test '$(MAKECMDGOALS)' = 'release' && echo 'release' || echo 'custom')
 
 # This is the final revision string
-DDT_REVISION    := $(GIT_NEXT_TAG) ($(TODAY), $(GIT_REVISION)-$(REV_TAG))
+DDT_REVISION    := $(GIT_NEXT_TAG) ($(TODAY), $(GIT_HASH)-$(REV_TAG))
 
 # This is used for `ronn`-based conditionals
 RONN            := $(shell which ronn 2> /dev/null | grep -v 'not found')
@@ -29,16 +29,11 @@ default: help
 
 -include ./config.mk
 
-# Ensures `./configure` has been run
-config.mk:
-	echo 'Please run `./configure` prior to running `make`.'
-	false
-
-
 # Usage help
 help:
 	echo 'Valid targets (requires GNU make):'
 	echo '  build      —  Builds ddt locally'
+	echo '  revision   —  Updates local revision'
 	echo '  install    —  Builds and installs ddt'
 	echo '  uninstall  —  Un-installs ddt'
 	echo '  clean      —  Purges out dir'
@@ -53,8 +48,14 @@ vars:
 	echo 'GIT_STATUS:   $(GIT_STATUS)'
 	echo 'GIT_LAST_TAG: $(GIT_LAST_TAG)'
 	echo 'GIT_NEXT_TAG: $(GIT_NEXT_TAG)'
-	echo 'GIT_REVISION: $(GIT_REVISION)'
+	echo 'GIT_HASH:     $(GIT_HASH)'
 	echo 'REV_TAG:      $(REV_TAG)'
+	echo 'DDT_REVISION: $(DDT_REVISION)'
+
+# Ensures `./configure` has been run
+config.mk:
+	echo 'Please run `./configure` prior to running `make`.'
+	false
 
 # Helper: Checks for root privileges
 privileges:
@@ -110,11 +111,11 @@ build: lint man_optional
 	# (This is so you can `make clean` without needing sudo again)
 	chmod -R g+w 'out'
 	#
-	# Update local revision
-	$(MAKE) --no-print-directory local_revision
-	#
 	echo 'Built into $(CURDIR)/out.'
-	$(CALLED_SELF_AND) echo 'Run `make man` to build man page, or `./configure && make install` to install.'
+	$(CALLED_SELF_AND) echo ''
+	$(CALLED_SELF_AND) test -z $(RONN) && echo 'Run `make man` to build man page.' || true
+	$(CALLED_SELF_AND) echo 'Run `make revision` to update revision.'
+	$(CALLED_SELF_AND) echo 'Run `./configure && make install` to install.'
 
 
 # Builds roff file(s) into man page(s) with `ronn` (dies if `ronn` is missing)
