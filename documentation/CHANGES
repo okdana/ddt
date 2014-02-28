@@ -1,5 +1,11 @@
 CHANGES: ddt
 
+37 (2014/02/27):
+	- Improved output of --summarise option.
+	- Added constants from sysexits(3) (can be used in test plans).
+	- Improved build system + implemented automatic revisioning.
+	- Updated --version output; use -qV to get old-style output.
+
 36 (2013/11/20):
 	- Added pre-requisite checking with prereq() function.
 	- Minor code improvements
