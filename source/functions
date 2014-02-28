@@ -186,6 +186,7 @@ ddt:summarise() {
 			499)
 				local message='pre-requisites not met for this test plan'
 
+				[[ "${ddt['mode']}" != 'summarise' ]] &&
 				printf '  %s %s %s\n' \
 					"${message}" \
 					"${ansi['grey']}${dots:$(( ${#message} + 10 ))}${ansi['reset']}" \
@@ -199,8 +200,11 @@ ddt:summarise() {
 
 			# 100: Plan description
 			100)
-				# Add a blank line if this isn't the first plan
-				[[ "${tests['total']}" -gt '0' ]] && printf '\n'
+				# Add a blank line if this isn't the first plan,
+				# and we're not summarising
+				[[ "${tests['total']}" -gt '0' ]] &&
+				[[ "${ddt['mode']}" != 'summarise' ]] &&
+				printf '\n'
 
 				printf '%s\n' "${ansi['bold']}${message}${ansi['reset']}"
 				;;
