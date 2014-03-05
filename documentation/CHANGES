@@ -1,5 +1,11 @@
 CHANGES: ddt
 
+39 (2014/03/04):
+	- Added DDT_CWD variable for use in test plans.
+	- Now drops prereq() from list of tests.
+	- Improved self-test plans.
+	- Changes to build system.
+
 38 (2014/02/27):
 	- Changes to build system.
 
