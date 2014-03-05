@@ -138,8 +138,8 @@ ddt:get_tests() {
 		# Remove anything with a ddtt?:, user:, or dep: prefix (these are reserved)
 		/^(ddtt?|user|dep):/d;
 
-		# Also remove before/after functions
-		/^(before|after)$/d;
+		# Also remove before/after/prereq functions
+		/^(before|after|prereq)$/d;
 	' "${1}" 2> /dev/null
 }
 
