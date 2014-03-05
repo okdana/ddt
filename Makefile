@@ -20,8 +20,8 @@ DDT_REVISION    := $(GIT_NEXT_TAG) ($(TODAY), $(GIT_HASH)-$(REV_TAG))
 RONN            := $(shell which ronn 2> /dev/null | grep -v 'not found')
 
 # This checks to see if the command-line target is equal to the target we're currently in;
-# if it is, whatever follows will be run. If it's not, it will just return true.
-CALLED_SELF_AND  = $(shell test '$(MAKECMDGOALS)' = '$@' && echo ' true && ' || echo ' true ')
+# if it is, whatever follows will be run. If it's not, it will just no-op.
+CALLED_SELF_AND  = $(shell test '$(MAKECMDGOALS)' = '$@' && echo ' true && ' || echo ' : \# ')
 
 
 default: help
@@ -51,6 +51,7 @@ vars:
 	echo 'GIT_HASH:     $(GIT_HASH)'
 	echo 'REV_TAG:      $(REV_TAG)'
 	echo 'DDT_REVISION: $(DDT_REVISION)'
+	echo 'RONN:         $(RONN)'
 
 # Ensures `./configure` has been run
 config.mk:
@@ -113,7 +114,7 @@ build: lint man_optional
 	#
 	echo 'Built into $(CURDIR)/out.'
 	$(CALLED_SELF_AND) echo ''
-	$(CALLED_SELF_AND) test -z $(RONN) && echo 'Run `make man` to build man page.' || true
+	$(CALLED_SELF_AND) test -z "$(RONN)" && echo 'Run `make man` to build man page.' || true
 	$(CALLED_SELF_AND) echo 'Run `make revision` to update revision.'
 	$(CALLED_SELF_AND) echo 'Run `./configure && make install` to install.'
 
@@ -134,8 +135,14 @@ man_optional:
 	test -z "$(RONN)" || ronn -r --date=$(shell git log -1 --date='short' --pretty='format:%cd' 'source/man/ddt.1.ronn') 'source/man/ddt.1.ronn'
 
 
-# Updates local version and installs /out files to the appropriate locations
-install: config.mk privileges $(CURDIR)/out/bin/ddt
+# Installs /out files to the appropriate locations
+install: config.mk privileges
+	# Check to see if we've already built;
+	# if we have, advise that we're not re-building
+	test -x "$(CURDIR)/out/bin/ddt" && echo 'Detected previously built copy; not re-building.' || true
+	# If we haven't, do the build (don't call directly)
+	test -x "$(CURDIR)/out/bin/ddt" || $(MAKE) out/bin/ddt
+	#
 	cp 'out/bin/ddt' "$(PREFIX)/bin/ddt"
 	#
 	# If the man page isn't there, that's fine
