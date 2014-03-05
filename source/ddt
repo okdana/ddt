@@ -1,7 +1,7 @@
 #!/bin/bash
 # vim: set ft=zsh:
 
-REVISION="38 (2014-02-27, ee2727-release)" # Auto-updated
+REVISION="39 (2014-03-04, 6817b8-release)" # Auto-updated
 
 ##: synopsis: [-h|-V] [-q|-v] [-c <when>] [-p <prefix>] [-W|-s] [<plan> ...]
 
