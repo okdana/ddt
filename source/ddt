@@ -213,6 +213,9 @@ for plan in "${@}"; do
 		# Ensure pre-requisites are met
 		prereq || { ddt:return_signal 499 ; exit ; }
 
+		# Export the test plan's CWD
+		export DDT_CWD="$( dirname "${thisPlan['file']}" )"
+
 		# Iterate through the individual tests
 		while read test; do
 			ddt:puts_debug "Working on test '${test}'"
