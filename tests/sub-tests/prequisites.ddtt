@@ -1,0 +1,15 @@
+# vim: set ft=zsh:
+# This test plan is not intended to be called on its own, although it can be;
+# it is invoked by ddt.ddtt to test the pre-requisite checking functionality
+
+describe 'ddt(1) self-test # 3: always skip'
+
+prereq() {
+	false
+}
+
+this_test_should_never_run() {
+	false
+}
+
+

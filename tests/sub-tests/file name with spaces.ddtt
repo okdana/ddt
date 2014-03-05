@@ -1,0 +1,11 @@
+# vim: set ft=zsh:
+# This test plan is not intended to be called on its own, although it can be;
+# it is invoked by ddt.ddtt to test handling of file names with spaces
+
+describe 'ddt(1) self-test # 2: file name with spaces'
+
+handles_file_names_with_spaces() {
+	true
+}
+
+
