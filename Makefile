@@ -182,7 +182,7 @@ unit:  test
 # Runs unit tests
 test: $(CURDIR)/out/bin/ddt
 	echo 'Running unit tests on $(shell out/bin/ddt -qV)...'
-	out/bin/ddt -q tests/*
+	out/bin/ddt -v tests/*.ddtt
 
 
 # Lints, builds, runs tests, builds man page, ensures clean repo state,
