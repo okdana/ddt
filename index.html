@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>ddt by okdana</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>ddt</h1>
+        <p>A unit-testing tool for shell scripts, based on roundup.</p>
+
+        <p class="view"><a href="https://github.com/okdana/ddt">View the Project on GitHub <small>okdana/ddt</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/okdana/ddt/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/okdana/ddt/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/okdana/ddt">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a id="ddt" class="anchor" href="#ddt" aria-hidden="true"><span class="octicon octicon-link"></span></a>ddt</h1>
+
+<p><strong>ddt</strong> is a unit-testing tool for shell scripts and other command-line applications which is based on (and compatible with) <a href="https://github.com/bmizerany/roundup">roundup</a>. The main improvements over roundup are GNU-style argument handling, better file handling, better error handling, more options, and (IMO) nicer output. I feel that it's also easier to maintain, since it is written for bash 4+, although this does of course make it less portable.</p>
+
+<h2>
+<a id="screen-shot" class="anchor" href="#screen-shot" aria-hidden="true"><span class="octicon octicon-link"></span></a>screen-shot</h2>
+
+<p><img src="https://raw.github.com/okdana/ddt/master/documentation/screenshot.png" alt="screen-shot"></p>
+
+<h2>
+<a id="explanation" class="anchor" href="#explanation" aria-hidden="true"><span class="octicon octicon-link"></span></a>explanation</h2>
+
+<p><strong>ddt</strong> works with roundup(5)-style test plans, which are simply shell scripts containing one or more function definitions, or tests. When pointed to a test plan, <strong>ddt</strong> sources it in a sub-shell and calls each function/test. If the function returns with <code>0</code> (the standard return code for success), it is considered a passed test. Otherwise, it is considered failed, and <strong>ddt</strong> will optionally (with <code>-v</code>) show you a trace indicating why.</p>
+
+<p>Example:</p>
+
+<div class="highlight highlight-bash"><pre><span class="pl-c"># This test simply executes `myapp` with no arguments, and pipes its output to</span>
+<span class="pl-c"># `grep` to ensure it displays usage information as expected. If the information</span>
+<span class="pl-c"># is there, `grep` will return with 0, and the test will pass.</span>
+<span class="pl-en">returns_usage_with_no_arguments</span>() {
+    myapp <span class="pl-k">2&gt;&amp;1</span> <span class="pl-k">|</span> grep -q <span class="pl-s1"><span class="pl-pds">'</span>usage:<span class="pl-pds">'</span></span>
+}</pre></div>
+
+<h2>
+<a id="todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>todo</h2>
+
+<ul>
+<li>Add basic argument handling for systems without extended getopt.</li>
+<li>Add support for specifying directories in addition to individual files.</li>
+<li>Figure out weird recursive testing problems.</li>
+<li>Improve function definition syntax parsing.</li>
+</ul>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/okdana">okdana</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
