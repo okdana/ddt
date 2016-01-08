@@ -1,129 +1,75 @@
 # vim: set ft=zsh:
-# This a basic test plan for running against ddt itself
 
-describe 'ddt(1) self-test'
+plan:describe 'ddt(1) self-test'
 
-# Allow setting the command path with DDT_PREFIX
-if [[ -n "${DDT_PREFIX}" ]]; then
-	cmd="${DDT_PREFIX}/ddt"
-# Otherwise we'll use the caller instead of just checking PATH,
-# in order to ensure we can run unit tests against versions we're building
-else
-	# This is a trick to get the absolute path to $0
-	dir="$(
-		pushd "$( dirname "${0}" )" > /dev/null 2>&1 &&
-		pwd &&
-		popd > /dev/null 2>&1
-	)"
-	cmd="${dir}/$( basename "${0}" )"
-fi
+declare -g beforePlan=''
+declare -g beforeTest=''
 
-prereq() {
-	[[ -x "${cmd}" ]]
+# If this test fails, the plan will be skipped as not having all of its
+# pre-requisites met (similar to PHPUnit's @requires annotation)
+plan:should_execute() {
+	[[ -x "${0}" ]]
 }
 
-passes_lint_check() {
-	output="$( bash -n "${cmd}" 2>&1 || true )"
-
-	[[ -z "${output}" ]]
+# This function is run after the plan is sourced but before any tests are
+# executed
+plan:before_plan() {
+	beforePlan='true'
 }
 
-returns_brief_usage_with_invalid_option() {
-	output="$( "${cmd}" -Z 2>&1 || true )"
-
-	grep -qF 'invalid' <<< "${output}" &&
-	grep -qF 'usage:' <<< "${output}"
+# This function is run immediately before each test is executed
+plan:before_test() {
+	beforeTest='true'
 }
 
-returns_full_usage_with_--help() {
-	output="$( "${cmd}" --help 2>&1 || true )"
-
-	grep -qF 'options:' <<< "${output}"
+# Make sure that `ddt` passes a basic lint check
+test:passes_lint_check() {
+	bash -n "${0}"
 }
 
-returns_full_version_information_with_-V() {
-	output="$( "${cmd}" -V 2>&1 || true )"
-
-	grep -qiF 'ddt rev' <<< "${output}" &&
-	grep -qiF 'copyright' <<< "${output}"
+# Make sure that `ddt -h` and `ddt --help` print long usage help text
+test:prints_long_usage_help_with_-h() {
+	"${0}" -h     | grep -iF 'options:' &&
+	"${0}" --help | grep -iF 'options:'
 }
 
-returns_brief_version_information_with_-qV() {
-	output="$( "${cmd}" -qV 2>&1 || true )"
-
-	grep -qiF 'ddt rev' <<< "${output}" &&
-	[[ "$( grep -c '.' <<< "${output}" )" == '1' ]]
+# Make sure that `ddt -X` and `ddt --X` print brief usage help text
+test:prints_brief_usage_help_with_-h() {
+	"${0}" -X  2>&1 | grep -iF 'usage:' &&
+	"${0}" --X 2>&1 | grep -iF 'usage:'
 }
 
-checks_current_directory_when_plan_not_specified() {
-	(
-		cd "${DDT_CWD}/sub-tests"
-
-		tests="$( find "${PWD}" -name '*.ddtt' )"
-
-		output="$( "${cmd}" -W 2>&1 || true )"
-
-		[[ "${tests}" == "${output}" ]]
-	)
+# Make sure that `ddt` supports FIFO-based test plans
+test:correctly_handles_FIFO_plan() {
+	"${0}" <( printf '%s\n' 'test:foo() { :; }' ) 2>&1 |
+	grep -iE 'foo.*PASS'
 }
 
-supports_file_names_with_spaces() {
-	output="$( "${cmd}" '/a/b/c/%fake file name%' 2>&1 || true )"
-
-	grep -q "^ddt: File '/a/b/c/%fake file name%'" <<< "${output}"
-
-	output="$( "${cmd}" "${DDT_CWD}/sub-tests/file name with spaces.ddtt" 2>&1 || true )"
-
-	grep -qE '^1 .* performed, 1 .* passed, 0 .* failed' <<< "${output}"
+# Make sure that `ddt` gives an error when passed a file of invalid type
+test:correctly_handles_invalid_type_plan() {
+	if "${0}" /dev/null; then
+		return 1
+	else
+		return 0
+	fi
 }
 
-supports_FIFOs() {
-	output="$( ddt <( echo $'true_test() {\ntrue\n}' ) 2>&1 || true )"
-
-	grep -q 'true test.*PASS' <<< "${output}" &&
-	grep -q 'ddt test results' <<< "${output}"
+# Make sure that `ddt` gives an error when passed a file with invalid contents
+test:correctly_handles_invalid_content_plan() {
+	if "${0}" "${0}"; then
+		return 1
+	else
+		return 0
+	fi
 }
 
-rejects_1_erroneous_file_name() {
-	output="$( ddt '/a/b/c/%ddt%test%' 2>&1 || true )"
-
-	lines="$( grep -c '.' <<< "${output}" )"
-	 text="$( grep -c '^ddt: File' <<< "${output}" )"
-
-	[[ "${lines} ${text}" == '1 1' ]]
+# Make sure that plan:before_plan() gets run during tests
+test:runs_plan:before__plan() {
+	[[ -n "${beforePlan}" ]]
 }
 
-rejects_3_erroneous_file_names() {
-	output="$( ddt '/a/b/c/%ddt%test1%' '/a/b/c/%ddt%test2%' '/a/b/c/%ddt%test3%' 2>&1 || true )"
-
-	lines="$( grep -c '.' <<< "${output}" )"
-	 text="$( grep -c '^ddt: File' <<< "${output}" )"
-
-	[[ "${lines} ${text}" == '3 3' ]]
+# Make sure that plan:before_test() gets run during tests
+test:runs_plan:before__test() {
+	[[ -n "${beforeTest}" ]]
 }
-
-rejects_invalid_binary_file() {
-	output="$( ddt '/bin/sh' 2>&1 || true )"
-
-	lines="$( grep -c '.' <<< "${output}" )"
-	 text="$( grep -c '^ddt: .* valid' <<< "${output}" )"
-
-	[[ "${lines} ${text}" == '1 1' ]]
-}
-
-skips_plans_with_unmet_prerequisites() {
-	output="$( ddt "${DDT_CWD}/sub-tests/prequisites.ddtt" 2>&1 || true )"
-
-	grep -qF 'SKIP' <<< "${output}" &&
-	grep -qE '^0 .* performed, 0 .* passed, 0 .* failed' <<< "${output}"
-}
-
-before() {
-	beforeVariable="$$"
-}
-
-runs_before_function_prior_to_testing() {
-	[[ "${beforeVariable}" == "$$" ]]
-}
-
 
