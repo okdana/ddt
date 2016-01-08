@@ -1,0 +1,582 @@
+#!/usr/bin/env bash
+# vim: set ft=zsh:
+
+#?: `ddt` is a unit- and functional-testing tool for command-line utilities.
+#?:
+#?: options:
+#?:   -h, --help       Displays this help information and exit
+#?:   -V, --version    Display version information and exit
+#?:   -q, --quiet      Reduce verbosity
+#?:   -c, --colour     Forcibly enable colourised output
+#?:   -C, --no-colour  Forcibly disable colourised output
+#?:   -W, --paths      Print paths of test plans and exit
+#?:   plan ...         Specify test plans
+
+# Dependency checks
+[[ "${BASH_VERSINFO[0]:-3}" == '3' ]] && {
+	printf '%s\n' 'This utility requires bash 4.0 or later.' >&2
+	exit 1
+}
+[[ "$( getopt --version 2>&1 )" == *'getopt'* ]] || {
+	printf '%s\n' 'This utility requires GNU `getopt`.' >&2
+	exit 1
+}
+
+# Required later on
+shopt -s nullglob > /dev/null 2>&1
+
+# Global variables
+unset ddt ansi
+unset GREP_OPTIONS
+declare -gA ddt ansi
+
+ddt=(
+	   [name]='ddt'
+	[version]='0.1.0'
+	 [sedERE]=''
+	  [debug]=''
+	  [quiet]=''
+	 [colour]='auto'
+	   [mode]=''
+	   [temp]=''
+)
+
+# Determine `sed` extended regex option
+# (usually -E on Mac/BSD/Solaris, -r on Linux)
+ddt[sedERE]='-r'
+[[ "$( sed --version 2>&1 )" == *'illegal option'* ]] &&
+ddt[sedERE]='-E'
+
+# Colour variables (might be unset later)
+ansi=(
+	 [normal]=$'\033[0m'
+	  [reset]=$'\033[0m'
+	   [bold]=$'\033[1m'
+	    [red]=$'\033[31m'
+	  [green]=$'\033[32m'
+	[magenta]=$'\033[35m'
+	   [grey]=$'\033[1;30m'
+)
+
+##
+# Returns whether the script has been sourced (as opposed to being run from the
+# command line). The script is determined to have been sourced if the
+# bottom-most element in the execution call stack is 'source' (it should be
+# 'main' if not sourced).
+#
+# @return
+#   Returns 0 if the script is sourced; returns >0 otherwise.
+ddt:script_is_sourced() {
+	local caller="${FUNCNAME[*]}"
+
+	[[ "${caller##* }" == 'source' ]] && return 0
+	return 1
+}
+
+##
+# Prints a line of text, unless ddt[quiet] is set.
+#
+# @global ddt
+#
+# @param string $1 ...
+#   (optional) Zero or more arguments to be concatenated and passed to `printf`.
+#
+# @return int
+#   Returns according to `printf`.
+ddt:puts() {
+	[[ -n "${ddt[quiet]}" ]] && return 0
+	printf '%s\n' "${*}"
+	return $?
+}
+
+##
+# Prints a debug message to STDERR, if ddt[debug] is set.
+#
+# @global ddt
+#
+# @param string $1 ...
+#   (optional) Zero or more arguments to pass to ddt:puts().
+#
+# @return int
+#   Returns according to ddt:puts().
+ddt:puts_debug() {
+	[[ -n "${ddt[debug]}" ]] || return 0
+	ddt:puts 'DEBUG:' "${@}" >&2
+	return $?
+}
+
+##
+# Prints an error message to STDERR, unless ddt[quiet] is set.
+#
+# @global ddt
+#
+# @param string $1 ...
+#   (optional) Zero or more arguments to pass to ddt:puts().
+#
+# @return int
+#   Returns according to ddt:puts().
+ddt:puts_error() {
+	[[ -n "${ddt[quiet]}" ]] && return 0
+	ddt:puts "${ddt[name]}:" "${@}" >&2
+	return $?
+}
+
+##
+# Halts script after (optionally) printing an error message.
+#
+# @param string $1 ...
+#   (optional) Zero or more arguments to pass to ddt:puts_error().
+#
+# @return void
+ddt:die() {
+	[[ -n "${1}" ]] && ddt:puts_error "${@}"
+	exit 1
+}
+
+##
+# Halts script after printing brief usage help and (optionally) an error
+# message.
+#
+# @param string $1 ...
+#   (optional) Zero or more arguments to pass to ddt:puts_error().
+#
+# @return void
+ddt:die_with_usage() {
+	[[ -n "${1}" ]] && ddt:puts_error "${@}"
+	ddt:print_brief_usage_help >&2
+	exit 1
+}
+
+##
+# Prints brief script usage help.
+#
+# @return int
+#   Returns according to ddt:puts().
+ddt:print_brief_usage_help() {
+	ddt:puts "usage: ${ddt[name]} [options] [plan ...]"
+	return $?
+}
+
+##
+# Prints long script usage help.
+#
+# @return int
+#   Returns according to ddt:puts().
+ddt:print_long_usage_help() {
+	ddt:puts "$( ddt:print_version )"
+	ddt:puts
+	ddt:puts "$( ddt:print_brief_usage_help )"
+	ddt:puts
+	ddt:puts "$(
+		# Obtain the body of our usage information by parsing the script file
+		# itself for comments beginning with #?:
+		sed "${ddt[sedERE]}" '
+			 /^[[:space:]]*#\?:/!d;
+			s/^[[:space:]]*#\?:[ ]?//;
+		' "${0}"
+	)"
+	return $?
+}
+
+##
+# Prints script version information.
+#
+# @return int
+#   Returns according to ddt:puts().
+ddt:print_version() {
+	ddt:puts "${ddt[name]} version ${ddt[version]}"
+	return $?
+}
+
+##
+# Prints a list of test functions found in the specified test plan.
+#
+# @param $1
+#   The test-plan file path.
+#
+# @return int
+#   Returns according to `sed`.
+ddt:parse_tests() {
+	sed "${ddt[sedERE]}" '
+		# Get lines that look like functions
+		/[({]/!d;
+		# Trim leading white-space
+		s/^[[:space:]]*//;
+		# Remove function key word
+		s/^function[[:space:]]+//;
+		# Remove anything without a test: prefix
+		/^test:/!d;
+		# Parse out the names
+		s/([^[:space:]({]+).*/\1/g;
+	' "${1}"
+	return $?
+}
+
+##
+# Signals a result to be passed to ddt:summarise().
+#
+# @param int $1
+#   The result ID.
+#
+# @param string $2
+#   The test name.
+#
+# @return int
+#   Returns according to `printf`.
+ddt:signal_result() {
+	printf '%s %s\n' "${1}" "${2}"
+	return $?
+}
+
+##
+# Formats a test name by replacing under-scores, &c.
+#
+# @param string $1
+#   The test name.
+#
+# @return int
+#   Returns according to `sed`.
+ddt:format_test_name() {
+	sed "${ddt[sedERE]}" '
+		# Remove test: prefix
+		s/^test://;
+		# Temporarily replace _ at beginning and end
+		s/(^_+|_+$)/\\/g;
+		# Temporarily replace any groups of 2+ _
+		s/_{2,}/\\/g;
+		# Convert any remaining under-scores to spaces
+		s/_/ /g;
+		# Convert under-scores back at beginning and end
+		s/(^\\|\\$)/_/g;
+		# Convert under-scores back elsewhere
+		s/\\/_/g;
+	' <<< "${1}"
+	return $?
+}
+
+##
+# Parses a trace-result file and prints the formatted result.
+#
+# @param string $1
+#   The trace-result file.
+#
+# @return int
+#   Returns according to `sed`.
+ddt:parse_trace_file() {
+	sed "${ddt[sedERE]}" "
+		1d;
+		s/^/    /;
+		\$s/(.*)/${ansi[magenta]}\1${ansi[reset]}/;
+	" "${1}"
+	return $?
+}
+
+##
+# Formats and summarises test results.
+ddt:summarise() {
+	local tests dots signal message name
+	declare -A tests
+
+	tests=(
+		[performed]=0
+		  [skipped]=0
+		    [error]=0
+		   [passed]=0
+		   [failed]=0
+		  [percent]=0
+	)
+
+	# 80 dots for padding
+	dots="$( yes '.' | head -80 | tr -d $'\n' )"
+
+	# Iterate through the test data we were provided
+	while IFS=' ' read -r signal message; do
+		case "${signal}" in
+			# 100: Plan description
+			100)
+				(( tests[performed] > 0 )) && ddt:puts
+				ddt:puts "${ansi[bold]}${message}${ansi[reset]}"
+				;;
+
+			# 200: Passing test
+			200)
+				(( tests[performed]++ ))
+				(( tests[passed]++ ))
+
+				name="$( ddt:format_test_name "${message}" )"
+
+				ddt:puts ' ' \
+					"${name}" \
+					"${ansi[grey]}${dots:$(( ${#name} + 10 ))}${ansi[reset]}" \
+					"${ansi[green]}[PASS]${ansi[reset]}"
+				;;
+
+			# 30x: Misc. output
+			30*)
+				ddt:puts "${message}"
+				;;
+
+			# 40x: Reportable errors
+			40*)
+				(( tests[error]++ ))
+
+				ddt:puts_error "${message}"
+				;;
+
+			# 499: Pre-requisites not met
+			499)
+				(( tests[skipped]++ ))
+
+				name='pre-requisites not met for this test plan'
+
+				ddt:puts ' ' \
+					"${name}" \
+					"${ansi[grey]}${dots:$(( ${#name} + 10 ))}${ansi[reset]}" \
+					"${ansi[grey]}[SKIP]${ansi[reset]}"
+				;;
+
+			# 500: Failing test
+			500)
+				(( tests[performed]++ ))
+				(( tests[failed]++ ))
+
+				name="$( ddt:format_test_name "${message}" )"
+
+				ddt:puts ' ' \
+					"${name}" \
+					"${ansi[grey]}${dots:$(( ${#name} + 10 ))}${ansi[reset]}" \
+					"${ansi[red]}[FAIL]${ansi[reset]}"
+
+				ddt:parse_trace_file "${ddt['temp']}/${message}"
+				;;
+		esac
+	done
+
+	(( tests[performed] + tests[skipped] > 0 )) && {
+		ddt:puts
+		printf '%s\n' "${ansi[bold]}--- ddt test results ---${ansi[reset]}"
+
+		(( tests[performed] > 0 )) &&
+		tests[percent]="$(
+			awk \
+				-v "performed=${tests[performed]}" \
+				-v "passed=${tests[passed]}" \
+				'BEGIN { print int((passed / performed) * 100); }'
+		)"
+
+		printf '%s: ' "${tests[performed]} test(s) performed"
+		printf '%s, ' "${tests[passed]} passed"
+		printf '%s, ' "${tests[failed]} failed"
+		printf '%s'   "${tests[percent]}% success"
+		printf '\n'
+	}
+
+	if (( tests[failed] > 0 )) || (( tests[error] > 0 )); then
+		return 1
+	fi
+	return 0
+}
+
+##
+# Main script entry-point.
+#
+# @param mixed $1 ...
+#
+# @return int
+ddt:main() {
+	local args p q _test
+	declare -a plans
+	declare -A plan
+
+	args="$(
+		getopt -n "${ddt['name']}" \
+			-o 'cChqVW' \
+			-l 'help,longhelp,version' \
+			-l 'quiet' \
+			-l 'colour,color' \
+			-l 'no-colour,no-color,nocolour,nocolor' \
+			-l 'paths' \
+			-- "${@}"
+	)" || ddt:die_with_usage
+
+	eval set -- "${args}"
+
+	while :; do
+		case "${1}" in
+			# Usage help
+			--help|-h|--longhelp)
+				ddt:print_long_usage_help
+				return 0
+				;;
+
+			# Version information
+			--version|-V)
+				ddt:print_version
+				return 0
+				;;
+
+			# Reduce verbosity
+			--quiet|-q)
+				ddt[quiet]='true'
+				shift
+				;;
+
+			# Forcibly enable colour
+			--colour|-c|--color)
+				ddt[colour]='always'
+				shift
+				;;
+
+			# Forcibly disable colour
+			--no-colo*r|-C|--nocolo*r)
+				ddt[colour]='never'
+				shift
+				;;
+
+			# Print paths
+			--paths|-W)
+				ddt[mode]='paths'
+				shift
+				;;
+
+			# Start of positional operands
+			--) shift; break ;;
+
+			# Unrecognised option
+			*) ddt:die_with_usage "Illegal option '${1}'." ;;
+		esac
+	done
+
+	# Set up colourisation
+	[[ "${ddt[colour]:-auto}" == 'auto' ]] && ! tty -s && {
+		unset ansi; declare -gA ansi
+	}
+	[[ "${ddt[colour]}" == 'never' ]] && {
+		unset ansi; declare -gA ansi
+	}
+
+	# Look for test plans according to our operands, or in the current directory
+	# if we haven't got any
+	for p in "${@:-.}"; do
+		[[ -d "${p}" ]] && {
+			for q in "${p}/"*.ddtt; do
+				plans+=( "${q}" )
+			done
+			continue
+		}
+		plans+=( "${p}" )
+	done
+
+	(( ${#plans[@]} == 0 )) &&
+	ddt:die 'No test plans found.'
+
+	# Create temp directory for trace results, delete on exit
+	ddt[temp]="$( mktemp -d )"
+	trap "rm -rf '${ddt[temp]}'" EXIT
+
+	for p in "${plans[@]}"; do
+		plan=(
+			 [name]="${p##*/}"
+			 [file]="${p}"
+			 [type]=''
+			[tests]=''
+			 [desc]=''
+		)
+
+		# Copy FIFOs to a temp file
+		[[ -p "${plan[file]}" ]] && {
+			cat "${plan[file]}" > "${ddt[temp]}/fifo.${plan[file]##*/}"
+
+			plan[name]='<named pipe>'
+			plan[file]="${ddt[temp]}/fifo.${plan[file]##*/}"
+		}
+
+		# Make sure the file's readable
+		[[ -r "${plan[file]}" ]] || {
+			ddt:signal_result 400 "Missing or unreadable test plan: ${plan[name]}"
+			continue
+		}
+
+		# Make sure the file is plain-text
+		[[ "$( file -b "${plan[file]}" 2> /dev/null )" == *'text'* ]] || {
+			ddt:signal_result 401 "Invalid test plan (wrong type): ${plan[name]}"
+			continue
+		}
+
+		# Make sure bash thinks it's OK
+		bash -n "${plan[file]}" > /dev/null 2>&1 || {
+			ddt:signal_result 402 "Invalid test plan (syntax error): ${plan[name]}"
+			continue
+		}
+
+		 plan[desc]="${plan[name]%.ddtt}"
+		plan[tests]="$( ddt:parse_tests "${plan[file]}" )"
+
+		# Require at least one valid test name
+		[[ -n "${plan[tests]}" ]] || {
+			ddt:signal_result 403 "No usable tests in test plan: ${plan[name]}"
+			continue
+		}
+
+		# If we're in paths mode, just print the file path now and move on
+		[[ "${ddt[mode]}" == 'paths' ]] && {
+			ddt:puts "${plan[file]}"
+			continue
+		}
+
+		# We'll use sub-shells as a sort of sand box to run the tests
+		(
+			# Provide special plan functions
+			plan:describe() {
+				plan[desc]="${*}"
+			}
+			plan:should_execute() { :; }
+			plan:before_plan()    { :; }
+			plan:after_plan()     { :; }
+			plan:before_test()    { :; }
+			plan:after_test()     { :; }
+
+			source "${plan[file]}" > /dev/null 2>&1
+
+			echo
+			ddt:signal_result 100 "${plan[desc]//$'\n'/ }"
+
+			# Ensure that plan pre-requisites are met
+			plan:should_execute > /dev/null 2>&1 || {
+				ddt:signal_result 499
+				exit
+			}
+
+			(
+				plan:before_plan > /dev/null 2>&1
+
+				while read -r _test; do
+					plan:before_test > /dev/null 2>&1
+
+					(
+						set -xe
+						"${_test}"
+					) > "${ddt[temp]}/${_test}" 2>&1
+
+					# Print pass/fail signal and test name
+					if (( $? == 0 )); then
+						ddt:signal_result 200 "${_test}"
+					else
+						ddt:signal_result 500 "${_test}"
+					fi
+
+					plan:after_test > /dev/null 2>&1
+				done <<< "${plan[tests]}"
+
+				plan:after_plan > /dev/null 2>&1
+			)
+		)
+	done | ddt:summarise
+	return $?
+}
+
+ddt:script_is_sourced || {
+	ddt:main "${@}"
+	exit $?
+}
+
