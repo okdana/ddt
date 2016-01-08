@@ -1,31 +1,47 @@
 # ddt
 
-**ddt** is a unit-testing tool for shell scripts and other command-line applications which is based on (and compatible with) [roundup](https://github.com/bmizerany/roundup). The main improvements over roundup are GNU-style argument handling, better file handling, better error handling, more options, and (IMO) nicer output. I feel that it's also easier to maintain, since it is written for bash 4+, although this does of course make it less portable.
+**ddt** is a unit- and functional-testing tool for shell scripts and other
+command-line applications, in the vein of (but no longer compatible with) Blake
+Mizerany's [roundup](https://github.com/bmizerany/roundup).
 
-## screen-shot
+![ddt screen-shot](https://raw.githubusercontent.com/okdana/ddt/master/screenshot.png)
 
-![screen-shot](https://raw.github.com/okdana/ddt/master/documentation/screenshot.png)
+## Installation
 
-## explanation
+Simply check out the repository and run `make install`.
 
-**ddt** works with roundup(5)-style test plans, which are simply shell scripts containing one or more function definitions, or tests. When pointed to a test plan, **ddt** sources it in a sub-shell and calls each function/test. If the function returns with `0` (the standard return code for success), it is considered a passed test. Otherwise, it is considered failed, and **ddt** will optionally (with `-v`) show you a trace indicating why.
+## Usage
 
-Example:
+**ddt** works with *test plans*, which are simply shell scripts containing one
+or more function definitions referred to as *tests*. When pointed to a test
+plan, **ddt** sources it in a sub-shell and runs each test. If the test function
+returns with `0` (the standard return code for success), it is considered to
+have passed; otherwise, it is considered to have failed, and **ddt** will show a
+trace indicating why.
+
+An example test plan follows:
 
 ```bash
-# This test simply executes `myapp` with no arguments, and pipes its output to
-# `grep` to ensure it displays usage information as expected. If the information
-# is there, `grep` will return with 0, and the test will pass.
-returns_usage_with_no_arguments() {
-	myapp 2>&1 | grep -q 'usage:'
+# plan:describe() is a special `ddt` function which gives the plan a name
+plan:describe 'my test plan'
+
+# Functions prefixed by `test:` naturally represent individual tests. This
+# particular test ensures that the output of `myapp` contains `mystring`
+test:prints_mystring() {
+	myapp 2>&1 | grep -F 'mystring'
 }
 ```
 
-## todo
+To run this test plan, simply point **ddt** to it:
 
-- Add basic argument handling for systems without extended getopt.
-- Add support for specifying directories in addition to individual files.
-- Figure out weird recursive testing problems.
-- Improve function definition syntax parsing.
+```bash
+% ddt mytest.ddtt
+```
 
+(By convention, **ddt** test plans use the extension `ddtt`, and **ddt** will
+look for files with this extension when passed a directory on the command line.)
+
+## Licence
+
+MIT.
 
