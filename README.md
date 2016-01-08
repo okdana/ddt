@@ -10,6 +10,14 @@ Mizerany's [roundup](https://github.com/bmizerany/roundup).
 
 Simply check out the repository and run `make install`.
 
+If you're on OS X, you'll also need to install bash 4 and GNU `getopt`:
+
+```bash
+% brew install bash
+% brew install gnu-getopt
+% brew link --force gnu-getopt
+```
+
 ## Usage
 
 **ddt** works with *test plans*, which are simply shell scripts containing one
