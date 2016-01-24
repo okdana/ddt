@@ -189,6 +189,25 @@ ddt:print_version() {
 }
 
 ##
+# Resolves a path to its absolute form (similar to `readlink -f`).
+#
+# @return int
+#   Returns 0 on successful resolution, >0 otherwise.
+ddt:resolve_path() {
+	[[ -e "${1}" ]] || {
+		printf '%s\n' "${1}"
+		return 1
+	}
+
+	(
+		pushd "$( dirname "${1}" )" > /dev/null &&
+		printf '%s\n' "${PWD}/${1##*/}"
+	) 2> /dev/null
+
+	return 0
+}
+
+##
 # Prints a list of test functions found in the specified test plan.
 #
 # @param $1
@@ -478,6 +497,7 @@ ddt:main() {
 		plan=(
 			 [name]="${p##*/}"
 			 [file]="${p}"
+			 [path]="$( ddt:resolve_path "${p}" )"
 			 [type]=''
 			[tests]=''
 			 [desc]=''
@@ -494,6 +514,12 @@ ddt:main() {
 		# Make sure the file's readable
 		[[ -r "${plan[file]}" ]] || {
 			ddt:signal_result 400 "Missing or unreadable test plan: ${plan[name]}"
+			continue
+		}
+
+		# Make sure the file's not empty
+		[[ -s "${plan[file]}" ]] || {
+			ddt:signal_result 403 "Empty test plan: ${plan[name]}"
 			continue
 		}
 
@@ -520,12 +546,16 @@ ddt:main() {
 
 		# If we're in paths mode, just print the file path now and move on
 		[[ "${ddt[mode]}" == 'paths' ]] && {
-			ddt:puts "${plan[file]}"
+			ddt:signal_result 300 "${plan[path]}"
 			continue
 		}
 
 		# We'll use sub-shells as a sort of sand box to run the tests
 		(
+			# Export special variables
+			export DDT_TEST_FILE="${plan[path]}"
+			export  DDT_TEST_DIR="$( dirname "${plan[path]}" )"
+
 			# Provide special plan functions
 			plan:describe() {
 				plan[desc]="${*}"
