@@ -28,7 +28,7 @@ shopt -s nullglob > /dev/null 2>&1
 # Global variables
 unset ddt ansi
 unset GREP_OPTIONS
-declare -gA ddt ansi
+declare -A ddt ansi
 
 ddt=(
 	   [name]='ddt'
@@ -467,12 +467,11 @@ ddt:main() {
 	done
 
 	# Set up colourisation
-	[[ "${ddt[colour]:-auto}" == 'auto' ]] && ! tty -s && {
-		unset ansi; declare -gA ansi
-	}
-	[[ "${ddt[colour]}" == 'never' ]] && {
-		unset ansi; declare -gA ansi
-	}
+	[[ "${ddt[colour]:-auto}" == 'auto' ]] &&
+	! tty -s &&
+	ansi=()
+	[[ "${ddt[colour]}" == 'never' ]] &&
+	ansi=()
 
 	# Look for test plans according to our operands, or in the current directory
 	# if we haven't got any
