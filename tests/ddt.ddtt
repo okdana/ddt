@@ -2,8 +2,8 @@
 
 plan:describe 'ddt(1) self-test'
 
-declare -g beforePlan=''
-declare -g beforeTest=''
+beforePlan=''
+beforeTest=''
 
 # If this test fails, the plan will be skipped as not having all of its
 # pre-requisites met (similar to PHPUnit's @requires annotation)
