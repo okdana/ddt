@@ -29,20 +29,20 @@ test:passes_lint_check() {
 
 # Make sure that `ddt -h` and `ddt --help` print long usage help text
 test:prints_long_usage_help_with_-h() {
-	"${0}" -h     | grep -iF 'options:' &&
-	"${0}" --help | grep -iF 'options:'
+	"${0}" -h     | grep -qiF 'options:' &&
+	"${0}" --help | grep -qiF 'options:'
 }
 
 # Make sure that `ddt -X` and `ddt --X` print brief usage help text
 test:prints_brief_usage_help_with_-h() {
-	"${0}" -X  2>&1 | grep -iF 'usage:' &&
-	"${0}" --X 2>&1 | grep -iF 'usage:'
+	"${0}" -X  2>&1 | grep -qiF 'usage:' &&
+	"${0}" --X 2>&1 | grep -qiF 'usage:'
 }
 
 # Make sure that `ddt` supports FIFO-based test plans
 test:correctly_handles_FIFO_plan() {
 	"${0}" <( printf '%s\n' 'test:foo() { :; }' ) 2>&1 |
-	grep -iE 'foo.*PASS'
+	grep -qiE 'foo.*PASS'
 }
 
 # Make sure that `ddt` gives an error when passed a file of invalid type
