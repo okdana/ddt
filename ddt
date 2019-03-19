@@ -283,7 +283,6 @@ ddt:format_test_name() {
 #   Returns according to `sed`.
 ddt:parse_trace_file() {
 	sed "${ddt[sedERE]}" "
-		1d;
 		s/^/    /;
 		\$s/(.*)/${ansi[magenta]}\1${ansi[reset]}/;
 	" "${1}"
@@ -368,27 +367,40 @@ ddt:summarise() {
 
 				ddt:parse_trace_file "${ddt['temp']}/${message}"
 				;;
+
+			# 599: Failing before/after-plan function
+			599)
+				(( tests[error]++ ))
+
+				name='ddt: before/after-plan function executes without error'
+
+				ddt:puts ' ' \
+					"${name}" \
+					"${ansi[grey]}${dots:$(( ${#name} + 10 ))}${ansi[reset]}" \
+					"${ansi[red]}[FAIL]${ansi[reset]}"
+
+				ddt:parse_trace_file "${ddt[temp]}/plan:before-after_plan"
+				;;
 		esac
 	done
 
-	(( tests[performed] + tests[skipped] > 0 )) && {
-		ddt:puts
-		printf '%s\n' "${ansi[bold]}--- ddt test results ---${ansi[reset]}"
+	ddt:puts
+	printf '%s\n' "${ansi[bold]}--- ddt test results ---${ansi[reset]}"
 
-		(( tests[performed] > 0 )) &&
-		tests[percent]="$(
-			awk \
-				-v "performed=${tests[performed]}" \
-				-v "passed=${tests[passed]}" \
-				'BEGIN { print int((passed / performed) * 100); }'
-		)"
+	(( tests[performed] > 0 )) &&
+	tests[percent]="$(
+		awk \
+			-v "performed=${tests[performed]}" \
+			-v "passed=${tests[passed]}" \
+			'BEGIN { print int((passed / performed) * 100); }'
+	)"
 
-		printf '%s: ' "${tests[performed]} test(s) performed"
-		printf '%s, ' "${tests[passed]} passed"
-		printf '%s, ' "${tests[failed]} failed"
-		printf '%s'   "${tests[percent]}% success"
-		printf '\n'
-	}
+	printf '%s: ' "${tests[performed]} test(s) performed"
+	printf '%s, ' "${tests[passed]} passed"
+	printf '%s, ' "${tests[failed]} failed"
+	printf '%s' "${tests[percent]}% success"
+	(( tests[error] )) && printf '; %s' "${tests[error]} error(s)"
+	printf '\n'
 
 	if (( tests[failed] > 0 )) || (( tests[error] > 0 )); then
 		return 1
@@ -577,14 +589,20 @@ ddt:main() {
 			}
 
 			(
-				plan:before_plan > /dev/null 2>&1
+				exec 3> "${ddt[temp]}/plan:before-after_plan"
+				{
+					set -xe
+					plan:before_plan
+					set +xe
+				} 1>&3 2>&1
+				exec 3>&-
 
 				while read -r _test; do
-					plan:before_test > /dev/null 2>&1
-
 					(
 						set -xe
+						plan:before_test
 						"${_test}"
+						plan:after_test
 					) > "${ddt[temp]}/${_test}" 2>&1
 
 					# Print pass/fail signal and test name
@@ -593,12 +611,19 @@ ddt:main() {
 					else
 						ddt:signal_result 500 "${_test}"
 					fi
-
-					plan:after_test > /dev/null 2>&1
 				done <<< "${plan[tests]}"
 
-				plan:after_plan > /dev/null 2>&1
+				exec 3> "${ddt[temp]}/plan:before-after_plan"
+				{
+					set -xe
+					plan:after_plan
+					set +xe
+				} 1>&3 2>&1
+				exec 3>&-
+
+				exit 0
 			)
+			(( $? )) && ddt:signal_result 599
 		)
 	done | ddt:summarise
 	return $?
