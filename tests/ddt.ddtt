@@ -3,7 +3,9 @@
 plan:describe 'ddt(1) self-test'
 
 beforePlan=''
+afterPlan=''
 beforeTest=''
+afterTest=''
 
 # If this test fails, the plan will be skipped as not having all of its
 # pre-requisites met (similar to PHPUnit's @requires annotation)
@@ -12,14 +14,37 @@ plan:should_execute() {
 }
 
 # This function is run after the plan is sourced but before any tests are
-# executed
+# executed. It affects the environment of the entire plan
 plan:before_plan() {
 	beforePlan='true'
 }
 
-# This function is run immediately before each test is executed
+# This function is run after all tests have executed. Again it affects the
+# environment of the entire plan (though it is the last thing to run, so this
+# isn't very useful)
+plan:after_plan() {
+	# This serves as a test of plan:before_plan(), plan:before_test(), and
+	# plan:after_test() — the *test() ones should not be able to modify this
+	# function's own environment
+	[[ -n "${beforePlan}" ]]
+	[[ -z "${beforeTest}" ]]
+	[[ -z "${afterTest}"  ]]
+}
+
+# This function is run immediately before each test is executed. It affects only
+# the environment of the current test
 plan:before_test() {
+	[[ -z "${beforeTest}" ]]
 	beforeTest='true'
+}
+
+# This function is run immediately after each test is executed. Again it affects
+# only the environment of the current test
+plan:after_test() {
+	[[ -z "${afterTest}" ]]
+	afterTest='true'
+	# This should have no effect on the outer plan environment
+	beforePlan=
 }
 
 # Make sure that `ddt` passes a basic lint check
@@ -68,8 +93,9 @@ test:runs_plan:before__plan() {
 	[[ -n "${beforePlan}" ]]
 }
 
-# Make sure that plan:before_test() gets run during tests
+# Make sure that plan:before_test() gets run during tests, and that
+# plan:after_test() can't affect the environment of the next test
 test:runs_plan:before__test() {
 	[[ -n "${beforeTest}" ]]
+	[[ -z "${afterTest}"  ]]
 }
-
