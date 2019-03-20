@@ -415,7 +415,7 @@ ddt:summarise() {
 #
 # @return int
 ddt:main() {
-	local args p q _test
+	local args p q _test _ret
 	declare -a plans
 	declare -A plan
 
@@ -600,9 +600,17 @@ ddt:main() {
 				while read -r _test; do
 					(
 						set -xe
+
 						plan:before_test
-						"${_test}"
-						plan:after_test
+
+						( "${_test}" ) || { _ret=$?; } 2> /dev/null
+
+						# This silly construct is used to suppress the after-test trace
+						# output when the test function itself has failed
+						{ (( _ret )); } 2> /dev/null && { plan:after_test; } 2> /dev/null
+						{ (( _ret )); } 2> /dev/null || plan:after_test
+
+						{ (( _ret )) && exit 1; exit 0; } 2> /dev/null
 					) > "${ddt[temp]}/${_test}" 2>&1
 
 					# Print pass/fail signal and test name
